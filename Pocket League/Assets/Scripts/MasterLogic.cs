@@ -76,6 +76,17 @@ public class MasterLogic : MonoBehaviour
     [SerializeField]
     public float maxPercentDealt;
 
+    [Tooltip("Number of stocks that a player starts with.")]
+    [SerializeField]
+    public int stockCount;
+    [Tooltip("Should both players reset their percent after a stock is taken?")]
+    [SerializeField]
+    public bool ResetPercentOnKill;
+    [Tooltip("Should players be able to influence their direction while in hitstun?")]
+    [SerializeField]
+    public bool ApplyMovementDuringHitstun;
+
+
     ///////  THESE FIELDS ARE COMING SOON  ///////////////////////////////////////////////////////////////////////
     //[SerializeField]
     //public int techWindowFrames; //before hitting the rail, how many frames early can you input a tech successfully?
@@ -112,29 +123,64 @@ public class MasterLogic : MonoBehaviour
     private float nextUpdate = 0.0f;
     private float fps = 0.0f;
     private float updateRate = 4.0f;  // 4 updates per sec.
+    private List<Vector3> spawnPositions = new List<Vector3>();
 
     #endregion
 
     private void Start()
     {
+        spawnPositions.Add(new Vector3(-10f, 0f, 0f));
+        spawnPositions.Add(new Vector3(10f, 0f, 0f));
+
         Application.targetFrameRate = 120;
         QualitySettings.vSyncCount = 0;
 
-        List<Vector3> spawnPositions = new List<Vector3>();
-        spawnPositions.Add(new Vector3(-10f, 0f, 0f));
-        spawnPositions.Add(new Vector3(10f, 0f, 0f));
         nextUpdate = Time.time;
+
         for (int i = 1; i < 3; i++)
-        {
-            GameObject newPlayer = GameObject.Instantiate(playerObj, spawnPositions[i - 1], Quaternion.identity) as GameObject;
-            newPlayer.name = "Player " + i;
-            PocketPlayerController newController = newPlayer.GetComponent<PocketPlayerController>();
-            newController.InitializePlayer(i);
-            players.Add(newController);
-        }
+            InitializePlayer(i);
 
         GameObject.Find("Player 1").GetComponent<PocketPlayerController>().otherPlayer = GameObject.Find("Player 2");
         GameObject.Find("Player 2").GetComponent<PocketPlayerController>().otherPlayer = GameObject.Find("Player 1");
+    }
+
+    public void InitializePlayer(int id)
+    {
+        GameObject newPlayer = GameObject.Instantiate(playerObj, spawnPositions[id - 1], Quaternion.identity) as GameObject;
+        newPlayer.name = "Player " + id;
+        PocketPlayerController newController = newPlayer.GetComponent<PocketPlayerController>();
+        newController.InitializePlayer(id);
+        newController.playerDetails.stocks = stockCount;
+        players.Add(newController);
+    }
+
+    public void LoseStock(PocketPlayerController player)
+    {
+        player.playerDetails.stocks--;
+        if (player.playerDetails.stocks == 0)
+            EndGame();
+        else
+        {
+            player.gameObject.transform.position = spawnPositions[player.playerDetails.id - 1];
+            player.otherPlayer.transform.position = spawnPositions[player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.id - 1];
+
+            player.playerDetails.percent = 0f;
+            if (ResetPercentOnKill)
+                player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.percent = 0f;
+        }
+    }
+
+    public void EndGame()
+    {
+        if (players[0].playerDetails.stocks == 0)
+        {
+            print("Player 1 wins");
+        }
+        else
+        {
+            print("Player 2 wins");
+        }
+        print("Press start to restart");
     }
 
     private void Update()

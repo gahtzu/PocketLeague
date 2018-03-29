@@ -58,10 +58,12 @@ public class PocketPlayerController : MonoBehaviour
     {
         model.GetComponent<Renderer>().material.color = color_idle;
     }
+
     void Run()
     {
         model.GetComponent<Renderer>().material.color = color_run;
     }
+
     void BeginCharge()
     {
         model.GetComponent<Renderer>().material.color = color_charge;
@@ -90,15 +92,15 @@ public class PocketPlayerController : MonoBehaviour
         float _percentMultiple = playerDetails.percent / 100f;
 
         //percent
-        float percentToAdd = masterLogic.minPercentDealt + ((masterLogic.maxPercentDealt - masterLogic.minPercentDealt) * _chargeMultiple);
+        float percentToAdd = ScaleMultiplier(masterLogic.minPercentDealt, masterLogic.maxPercentDealt, _chargeMultiple);
         playerDetails.percent += percentToAdd;
 
         //hitstun length
-        float hitstunLength = masterLogic.minHitstunLength + ((masterLogic.maxHitstunLength - masterLogic.minHitstunLength) * _percentMultiple);
+        float hitstunLength = ScaleMultiplier(masterLogic.minHitstunLength, masterLogic.maxHitstunLength, _percentMultiple);
 
         //velocity
-        float velocity = masterLogic.minKnockbackVelocity + ((masterLogic.maxKnockbackVelocity - masterLogic.minKnockbackVelocity) * _chargeMultiple);
-        velocity += masterLogic.minKnockbackVelocityAdditionFromPercent + ((masterLogic.maxKnockbackVelocityAdditionFromPercent - masterLogic.minKnockbackVelocityAdditionFromPercent) * _percentMultiple);
+        float velocity = ScaleMultiplier(masterLogic.minKnockbackVelocity, masterLogic.maxKnockbackVelocity, _chargeMultiple);
+        velocity += ScaleMultiplier(masterLogic.minKnockbackVelocityAdditionFromPercent, masterLogic.maxKnockbackVelocityAdditionFromPercent, _percentMultiple);
 
         //vector A is the direction the player is facing 
         //vector B is the direction of the attacker to the victim
@@ -121,7 +123,7 @@ public class PocketPlayerController : MonoBehaviour
         chargeCounter = 0;
         while ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Charge)
         {
-
+            //print ("still charge");
             if (chargeCounter > masterLogic.maxChargeFrames)
             {
                 chargeCounter = masterLogic.maxChargeFrames;
@@ -141,15 +143,23 @@ public class PocketPlayerController : MonoBehaviour
 
     private IEnumerator attackRecovery()
     {
+        if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Hitstun)
+        {
+            hitBox.GetComponent<BoxCollider>().enabled = false;
+            hitBox.GetComponent<MeshRenderer>().enabled = false;
+            yield return null;
+        }
+
         hitBox.GetComponent<BoxCollider>().enabled = true;
         hitBox.GetComponent<MeshRenderer>().enabled = true;
 
         chargeMultiple = ((float)chargeCounter - masterLogic.minChargeFrames) / (masterLogic.maxChargeFrames - masterLogic.minChargeFrames);
 
-        float framesToRecover = masterLogic.minAttackCooldownFrames + ((masterLogic.maxAttackCooldownFrames - masterLogic.minAttackCooldownFrames) * chargeMultiple);
-        float hitboxActivationMultiple = masterLogic.minAttackHitboxActivationFrames + ((masterLogic.maxAttackHitboxActivationFrames - masterLogic.minAttackHitboxActivationFrames) * chargeMultiple);
-        float hitboxOffsetMultiple = masterLogic.smallHitboxOffset + ((masterLogic.bigHitboxOffset - masterLogic.smallHitboxOffset) * chargeMultiple);
-        hitBox.transform.localScale = masterLogic.smallHitboxScale + ((masterLogic.bigHitboxScale - masterLogic.smallHitboxScale) * chargeMultiple);
+        float framesToRecover = ScaleMultiplier(masterLogic.minAttackCooldownFrames, masterLogic.maxAttackCooldownFrames, chargeMultiple);
+        float hitboxActivationMultiple = ScaleMultiplier(masterLogic.minAttackHitboxActivationFrames, masterLogic.maxAttackHitboxActivationFrames, chargeMultiple);
+        float hitboxOffsetMultiple = ScaleMultiplier(masterLogic.smallHitboxOffset, masterLogic.bigHitboxOffset, chargeMultiple);
+
+        hitBox.transform.localScale = ScaleMultiplier(masterLogic.smallHitboxScale, masterLogic.bigHitboxScale, chargeMultiple);
         hitBox.transform.localPosition = Vector3.zero + new Vector3(0f, 0f, hitboxOffsetMultiple);
 
         for (float i = 0; i < framesToRecover; i++)
@@ -164,6 +174,16 @@ public class PocketPlayerController : MonoBehaviour
         hitBox.GetComponent<BoxCollider>().enabled = false;
         hitBox.GetComponent<MeshRenderer>().enabled = false;
         stateMachine.ChangeState(StateId.Idle);
+    }
+
+    private float ScaleMultiplier(float min, float max, float multiple)
+    {
+        return min + ((max - min) * multiple);
+    }
+
+    private Vector3 ScaleMultiplier(Vector3 min, Vector3 max, float multiple)
+    {
+        return min + ((max - min) * multiple);
     }
 
     private void LateUpdate()
@@ -181,12 +201,11 @@ public class PocketPlayerController : MonoBehaviour
             if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Run && (horiz == 0f && vert == 0f))
                 stateMachine.ChangeState(StateId.Idle);
 
-            if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Run)
+            if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Run || (masterLogic.ApplyMovementDuringHitstun && (StateId)stateMachine.GetCurrentStateEnum() == StateId.Hitstun))
             {
                 transform.LookAt(transform.position + moveVector);
                 transform.Translate(moveVector, Space.World);
             }
-
 
             // BUTTONS
             ButtonList_OnKey.Clear();
@@ -217,7 +236,7 @@ public class PlayerDetails
 {
     public int id { get; set; }
     public float percent { get; set; }
-
+    public int stocks { get; set; }
     public PlayerDetails(int _id)
     {
         id = _id;
