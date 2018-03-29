@@ -789,7 +789,9 @@ MonoBehaviour:
   stockCount: 4
   ResetPercentOnKill: 1
   ApplyMovementDuringHitstun: 1
+  percentCharacterOffsetX: -15
   playerObj: {fileID: 1821231853052730, guid: fac6d1b8e98814f4f91f1491ca130330, type: 2}
+  isGameOver: 0
 --- !u!4 &1585636838
 Transform:
   m_ObjectHideFlags: 0

@@ -85,8 +85,9 @@ public class MasterLogic : MonoBehaviour
     [Tooltip("Should players be able to influence their direction while in hitstun?")]
     [SerializeField]
     public bool ApplyMovementDuringHitstun;
-
-
+    [Tooltip("How many pixels does the percentages string offset from the center?")]
+    [SerializeField]
+    private float percentCharacterOffsetX;
     ///////  THESE FIELDS ARE COMING SOON  ///////////////////////////////////////////////////////////////////////
     //[SerializeField]
     //public int techWindowFrames; //before hitting the rail, how many frames early can you input a tech successfully?
@@ -124,6 +125,11 @@ public class MasterLogic : MonoBehaviour
     private float fps = 0.0f;
     private float updateRate = 4.0f;  // 4 updates per sec.
     private List<Vector3> spawnPositions = new List<Vector3>();
+    [HideInInspector]
+    public bool isGameOver = false;
+    private int victoryPlayer = 1;
+    private Camera gamecam;
+    private float wordBoxOffsetX;
 
     #endregion
 
@@ -131,7 +137,7 @@ public class MasterLogic : MonoBehaviour
     {
         spawnPositions.Add(new Vector3(-10f, 0f, 0f));
         spawnPositions.Add(new Vector3(10f, 0f, 0f));
-
+        gamecam = GameObject.Find("Main Camera").GetComponent<Camera>();
         Application.targetFrameRate = 120;
         QualitySettings.vSyncCount = 0;
 
@@ -157,13 +163,21 @@ public class MasterLogic : MonoBehaviour
     public void LoseStock(PocketPlayerController player)
     {
         player.playerDetails.stocks--;
+
+        foreach (PocketPlayerController _player in players)
+        {
+            _player.stateMachine.ChangeState(StateId.Idle, true);
+            _player.StopAllCoroutines();
+        }
+
         if (player.playerDetails.stocks == 0)
+        {
             EndGame();
+        }
         else
         {
             player.gameObject.transform.position = spawnPositions[player.playerDetails.id - 1];
             player.otherPlayer.transform.position = spawnPositions[player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.id - 1];
-
             player.playerDetails.percent = 0f;
             if (ResetPercentOnKill)
                 player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.percent = 0f;
@@ -172,15 +186,18 @@ public class MasterLogic : MonoBehaviour
 
     public void EndGame()
     {
-        if (players[0].playerDetails.stocks == 0)
+        isGameOver = true;
+
+
+        for (int i = 0; i < players.Count; i++)
         {
-            print("Player 1 wins");
+            if (players[i].playerDetails.stocks == 0)
+                victoryPlayer = players[i].otherPlayer.GetComponent<PocketPlayerController>().playerDetails.id;
+
+            Destroy(players[i].gameObject);
         }
-        else
-        {
-            print("Player 2 wins");
-        }
-        print("Press start to restart");
+
+
     }
 
     private void Update()
@@ -199,8 +216,11 @@ public class MasterLogic : MonoBehaviour
         GUIStyle green = new GUIStyle(),
                  small = new GUIStyle(),
                  header = new GUIStyle(),
-                 percents = new GUIStyle();
+                 percents = new GUIStyle(),
+                 percentsAttached = new GUIStyle(),
+                 bigOl = new GUIStyle();
         GUI.color = Color.white;
+        Color greyishRed = Color.grey + new Color(.2f, 0f, 0f);
 
         green.fontSize = 14;
         green.normal.textColor = Color.green;
@@ -210,7 +230,24 @@ public class MasterLogic : MonoBehaviour
         small.normal.textColor = Color.white;
         percents.fontSize = 30;
         percents.normal.textColor = Color.white;
+        percentsAttached.fontSize = 25;
+        percentsAttached.normal.textColor = Color.grey;
 
+        bigOl.fontSize = 50;
+        bigOl.normal.textColor = Color.green;
+        try
+        {
+            foreach (PocketPlayerController player in players)
+            {
+                wordBoxOffsetX = -1f * (Mathf.Floor(player.playerDetails.percent).ToString() + "%").Length * percentCharacterOffsetX / 2f;
+                Color newColor = ScaleMultiplier(Color.white, greyishRed, player.playerDetails.percent / 100f);
+                newColor.a = ScaleMultiplier(-.2f, .75f, Vector3.Distance(player.transform.position, player.otherPlayer.transform.position) / 8f);
+                percentsAttached.normal.textColor = newColor;
+                GUI.Box(new Rect(gamecam.WorldToScreenPoint(player.gameObject.transform.position).x - wordBoxOffsetX, Screen.height - gamecam.WorldToScreenPoint(player.gameObject.transform.position).y - 53, 100f, 100f), Mathf.Floor(player.playerDetails.percent).ToString() + "%", percentsAttached);
+                //GUI.Box(new Rect(gamecam.WorldToScreenPoint(player.gameObject.transform.position).x - 10, Screen.height - gamecam.WorldToScreenPoint(player.gameObject.transform.position).y - 25, 100f, 100f), Mathf.Floor(player.playerDetails.id).ToString() +, percentsAttached);
+            }
+        }
+        catch { }
         GUILayout.Label(" ");
         GUILayout.Label(" ");
         GUILayout.Label(" ");
@@ -236,8 +273,27 @@ public class MasterLogic : MonoBehaviour
 
         }
         string spaces = "                                                           ";
-        GUILayout.Label(spaces + "[P1] " + Mathf.Floor(players[0].playerDetails.percent) + "%" + spaces + "[P2] " + Mathf.Floor(players[1].playerDetails.percent) + "%", percents);
+        GUILayout.BeginArea(new Rect(Screen.width / 3.5f, Screen.height / 2f, Screen.width, Screen.height));
 
+        if (isGameOver)
+        {
+            GUILayout.Label("Player " + victoryPlayer + " won!  Press Start to play again!", bigOl);
+
+        }
+
+        GUILayout.EndArea();
+        if (!isGameOver)
+            GUILayout.Label(spaces + "[P1] " + Mathf.Floor(players[0].playerDetails.percent) + "% (" + players[0].playerDetails.stocks + " stocks)" + spaces + "[P2] " + Mathf.Floor(players[1].playerDetails.percent) + "% (" + players[1].playerDetails.stocks + " stocks)", percents);
+
+    }
+
+    private Color ScaleMultiplier(Color min, Color max, float multiple)
+    {
+        return min + ((max - min) * multiple);
+    }
+    private float ScaleMultiplier(float min, float max, float multiple)
+    {
+        return min + ((max - min) * multiple);
     }
 }
 

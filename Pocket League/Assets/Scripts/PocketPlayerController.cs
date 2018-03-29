@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PocketPlayerController : MonoBehaviour
 {
@@ -57,11 +58,15 @@ public class PocketPlayerController : MonoBehaviour
     void Idle()
     {
         model.GetComponent<Renderer>().material.color = color_idle;
+        hitBox.GetComponent<BoxCollider>().enabled = false;
+        hitBox.GetComponent<MeshRenderer>().enabled = false;
     }
 
     void Run()
     {
         model.GetComponent<Renderer>().material.color = color_run;
+        hitBox.GetComponent<BoxCollider>().enabled = false;
+        hitBox.GetComponent<MeshRenderer>().enabled = false;
     }
 
     void BeginCharge()
@@ -104,10 +109,10 @@ public class PocketPlayerController : MonoBehaviour
 
         //vector A is the direction the player is facing 
         //vector B is the direction of the attacker to the victim
-        //couldn't decide which is better, so in-between seems like a good spot for now
         Vector3 attackAngleTrajectory = (otherPlayer.transform.Find("hitbox").position - otherPlayer.transform.position).normalized * (velocity);
         Vector3 playerAngleTrajectory = (transform.position - otherPlayer.transform.position).normalized * (velocity);
-        trajectory = (attackAngleTrajectory + playerAngleTrajectory) / 2f;
+        //couldn't decide which is better, so in-between seems like a good spot for now
+        trajectory = Vector3.Lerp(attackAngleTrajectory, playerAngleTrajectory, .5f);
 
         for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
         {
@@ -123,7 +128,6 @@ public class PocketPlayerController : MonoBehaviour
         chargeCounter = 0;
         while ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Charge)
         {
-            //print ("still charge");
             if (chargeCounter > masterLogic.maxChargeFrames)
             {
                 chargeCounter = masterLogic.maxChargeFrames;
@@ -226,6 +230,10 @@ public class PocketPlayerController : MonoBehaviour
                 if (ButtonList_OnKeyDown.Contains(Button.X))
                 {
                     stateMachine.ChangeState(StateId.Charge);
+                }
+                if (ButtonList_OnKeyDown.Contains(Button.Start) && masterLogic.isGameOver)
+                {
+                    SceneManager.LoadScene(SceneManager.GetActiveScene().name);
                 }
             }
         }
