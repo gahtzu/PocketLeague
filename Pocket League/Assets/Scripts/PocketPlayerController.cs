@@ -84,6 +84,8 @@ public class PocketPlayerController : MonoBehaviour
     void GetHit()
     {
         model.GetComponent<Renderer>().material.color = color_hitstun;
+        StopCoroutine("attackRecovery");
+        StopCoroutine("chargeAttack");
         StopCoroutine("getHit");
         StartCoroutine("getHit");
     }
@@ -149,20 +151,23 @@ public class PocketPlayerController : MonoBehaviour
         chargeMultiple = ((float)chargeCounter - masterLogic.minChargeFrames) / (masterLogic.maxChargeFrames - masterLogic.minChargeFrames);
 
         float framesToRecover = ScaleMultiplier(masterLogic.minAttackCooldownFrames, masterLogic.maxAttackCooldownFrames, chargeMultiple);
-        float hitboxActivationMultiple = ScaleMultiplier(masterLogic.minAttackHitboxActivationFrames, masterLogic.maxAttackHitboxActivationFrames, chargeMultiple);
-        float hitboxOffsetMultiple = ScaleMultiplier(masterLogic.smallHitboxOffset, masterLogic.bigHitboxOffset, chargeMultiple);
+        float hitboxActivationFrames = ScaleMultiplier(masterLogic.minAttackHitboxActivationFrames, masterLogic.maxAttackHitboxActivationFrames, chargeMultiple);
+        float hitboxOffset = ScaleMultiplier(masterLogic.smallHitboxOffset, masterLogic.bigHitboxOffset, chargeMultiple);
 
         hitBox.transform.localScale = ScaleMultiplier(masterLogic.smallHitboxScale, masterLogic.bigHitboxScale, chargeMultiple);
-        hitBox.transform.localPosition = Vector3.zero + new Vector3(0f, 0f, hitboxOffsetMultiple);
+        hitBox.transform.localPosition = Vector3.zero + new Vector3(0f, 0f, hitboxOffset);
 
         for (float i = 0; i < framesToRecover; i++)
         {
-            if (i > hitboxActivationMultiple)
+            if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.AttackRecovery)
             {
-                ToggleColliderAndMeshRenderer(hitBox, false);
+                if (i > hitboxActivationFrames)
+                    ToggleColliderAndMeshRenderer(hitBox, false);
+
+                yield return new WaitForEndOfFrame();
             }
-            yield return new WaitForEndOfFrame();
         }
+
         ToggleColliderAndMeshRenderer(hitBox, false);
         stateMachine.ChangeState(StateId.Idle);
     }
@@ -191,7 +196,7 @@ public class PocketPlayerController : MonoBehaviour
             vert = Input.GetAxis("Player" + playerDetails.id + "Vertical");
             horiz = Input.GetAxis("Player" + playerDetails.id + "Horizontal");
 
-            Vector3 moveVector = new Vector3(horiz, 0f, vert) * masterLogic.playerSpeed;
+            Vector3 moveVector = (new Vector3(horiz, 0f, vert).normalized) * masterLogic.playerSpeed;
 
             if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Idle && (horiz != 0f || vert != 0f))
                 stateMachine.ChangeState(StateId.Run);
