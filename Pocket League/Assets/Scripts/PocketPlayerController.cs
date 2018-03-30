@@ -23,12 +23,14 @@ public class PocketPlayerController : MonoBehaviour
     public PlayerDetails playerDetails = new PlayerDetails(-1);
     [HideInInspector]
     public Vector3 knockBackTrajectory = new Vector3(0f, 0f, 0f);
+    private int startCounter = 0;
 
     private List<Button> ButtonList_OnKeyDown = new List<Button>();
     private List<Button> ButtonList_OnKeyUp = new List<Button>();
     private List<Button> ButtonList_OnKey = new List<Button>();
 
-    private GameObject hitBox, model;
+    [HideInInspector]
+    public GameObject hitBox, model;
 
     private Color color_idle = Color.blue,
                   color_run = Color.green,
@@ -36,6 +38,7 @@ public class PocketPlayerController : MonoBehaviour
                   color_attack = Color.red,
                   color_hitstun = Color.magenta;
 
+    private Vector3 moveVector = new Vector3();
     #endregion
 
     public void InitializePlayer(int playerId)
@@ -47,12 +50,17 @@ public class PocketPlayerController : MonoBehaviour
         hitBox = transform.Find("hitbox").gameObject;
         hitBox.transform.localScale = masterLogic.smallHitboxScale;
         hitBox.transform.localPosition += new Vector3(0f, 0f, masterLogic.smallHitboxOffset);
-
         stateMachine.Subscribe(BeginCharge, StateId.Charge, true);
         stateMachine.Subscribe(AttackRecovery, StateId.AttackRecovery, true);
         stateMachine.Subscribe(GetHit, StateId.Hitstun, true);
         stateMachine.Subscribe(Idle, StateId.Idle, true);
         stateMachine.Subscribe(Run, StateId.Run, true);
+        stateMachine.Subscribe(Dead, StateId.Dead, true);
+    }
+
+    void Dead()
+    {
+        model.GetComponent<Renderer>().material.color = new Color(.25f, .25f, .25f, 1f);
     }
 
     void Idle()
@@ -75,12 +83,14 @@ public class PocketPlayerController : MonoBehaviour
         StopCoroutine("chargeAttack");
         StartCoroutine("chargeAttack");
     }
+
     void AttackRecovery()
     {
         model.GetComponent<Renderer>().material.color = color_attack;
         StopCoroutine("attackRecovery");
         StartCoroutine("attackRecovery");
     }
+
     void GetHit()
     {
         model.GetComponent<Renderer>().material.color = color_hitstun;
@@ -120,13 +130,13 @@ public class PocketPlayerController : MonoBehaviour
             yield return new WaitForEndOfFrame();
         }
 
-        stateMachine.ChangeState(StateId.Idle);
+        stateMachine.ChangeState(StateId.Idle, true, true);
     }
 
     private IEnumerator chargeAttack()
     {
         chargeCounter = 0;
-        while ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Charge)
+        while (isCurrentCharacterState(StateId.Charge))
         {
             if (chargeCounter > masterLogic.maxChargeFrames)
             {   //held for maximum charge
@@ -147,7 +157,7 @@ public class PocketPlayerController : MonoBehaviour
 
     private IEnumerator attackRecovery()
     {
-        ToggleColliderAndMeshRenderer(hitBox, true);
+        ToggleHitbox(hitBox, true);
         chargeMultiple = ((float)chargeCounter - masterLogic.minChargeFrames) / (masterLogic.maxChargeFrames - masterLogic.minChargeFrames);
 
         float framesToRecover = ScaleMultiplier(masterLogic.minAttackCooldownFrames, masterLogic.maxAttackCooldownFrames, chargeMultiple);
@@ -159,88 +169,102 @@ public class PocketPlayerController : MonoBehaviour
 
         for (float i = 0; i < framesToRecover; i++)
         {
-            if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.AttackRecovery)
-            {
-                if (i > hitboxActivationFrames)
-                    ToggleColliderAndMeshRenderer(hitBox, false);
-
+            if (i > hitboxActivationFrames)
+                ToggleHitbox(hitBox, false);
+            if (isCurrentCharacterState(StateId.AttackRecovery))
                 yield return new WaitForEndOfFrame();
-            }
         }
 
-        ToggleColliderAndMeshRenderer(hitBox, false);
-        stateMachine.ChangeState(StateId.Idle);
+        ToggleHitbox(hitBox, false);
+
+        if (isCurrentCharacterState(StateId.AttackRecovery))
+            stateMachine.ChangeState(StateId.Idle, forceTransition: true);
     }
 
-    private void ToggleColliderAndMeshRenderer(GameObject go, bool isEnabled)
+    private void LateUpdate()
     {
-        go.GetComponent<BoxCollider>().enabled = isEnabled;
-        go.GetComponent<MeshRenderer>().enabled = isEnabled;
+        ButtonList_OnKey.Clear();
+        ButtonList_OnKeyDown.Clear();
+        ButtonList_OnKeyUp.Clear();
+
+        if (playerDetails.id > 0)
+        {
+            vert = Input.GetAxis("Player" + playerDetails.id + "Vertical");
+            horiz = Input.GetAxis("Player" + playerDetails.id + "Horizontal");
+
+            //by normalizing the vector, we solve the 'diagonal is faster' problem
+            moveVector = (new Vector3(horiz, 0f, vert).normalized) * masterLogic.playerSpeed;
+
+            //only want to be moving during these scenes   
+            if (masterLogic.isCurrentSceneState(SceneStateId.Battle) || masterLogic.isCurrentSceneState(SceneStateId.Results))
+            {
+                if (horiz != 0f || vert != 0f)
+                    stateMachine.ChangeState(StateId.Run);
+                else if (!isCurrentCharacterState(StateId.Dead))
+                    stateMachine.ChangeState(StateId.Idle);
+
+                //allow movement via joystick if we are running, or if we are in hitstun (when AllowMovementDuringHitstun=true)
+                if (isCurrentCharacterState(StateId.Run) || (masterLogic.AllowMovementDuringHitstun && isCurrentCharacterState(StateId.Hitstun)))
+                {
+                    if (isCurrentCharacterState(StateId.Hitstun))
+                        moveVector *= masterLogic.MovementReductionDuringHitstun;
+                    else if (isCurrentCharacterState(StateId.Run))
+                        transform.LookAt(transform.position + moveVector);
+
+                    transform.Translate(moveVector, Space.World);
+                }
+            }
+
+            //check all 10 xbox controller buttons
+            for (int i = 0; i < 10; i++)
+            {
+                if (Input.GetKeyDown("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKeyDown.Add((Button)i); }
+                if (Input.GetKeyUp("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKeyUp.Add((Button)i); }
+                if (Input.GetKey("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKey.Add((Button)i); }
+            }
+
+            //start attack
+            if (ButtonList_OnKeyDown.Contains(Button.X) && (masterLogic.isCurrentSceneState(SceneStateId.Battle) || masterLogic.isCurrentSceneState(SceneStateId.Results)))
+                stateMachine.ChangeState(StateId.Charge);
+            //skip the countdown
+            if (ButtonList_OnKeyDown.Contains(Button.Start))
+                masterLogic.stateMachine.ChangeState(SceneStateId.Battle);
+            //view debug info
+            if (ButtonList_OnKeyDown.Contains(Button.Select))
+                masterLogic.viewDebug = !masterLogic.viewDebug;
+           
+            //hold start for x frames to reload the scene
+            if (ButtonList_OnKey.Contains(Button.Start))
+            {
+                startCounter++;
+                if (startCounter > 55) { SceneManager.LoadScene(SceneManager.GetActiveScene().name); }
+            }
+            else { startCounter = 0; }
+        }
+    }
+
+    private void ToggleHitbox(GameObject hitbox, bool isEnabled)
+    {
+        hitbox.GetComponent<BoxCollider>().enabled = isEnabled;
+        hitbox.GetComponent<MeshRenderer>().enabled = isEnabled;
     }
 
     private float ScaleMultiplier(float min, float max, float multiple)
     {
         return min + ((max - min) * multiple);
     }
-
     private Vector3 ScaleMultiplier(Vector3 min, Vector3 max, float multiple)
     {
         return min + ((max - min) * multiple);
     }
 
-    private void LateUpdate()
+    public bool isCurrentCharacterState(StateId state)
     {
-        if (playerDetails.id > 0 && !masterLogic.disablePlayersInputs)
-        {
-            // JOYSTICKS
-            vert = Input.GetAxis("Player" + playerDetails.id + "Vertical");
-            horiz = Input.GetAxis("Player" + playerDetails.id + "Horizontal");
-
-            Vector3 moveVector = (new Vector3(horiz, 0f, vert).normalized) * masterLogic.playerSpeed;
-
-            if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Idle && (horiz != 0f || vert != 0f))
-                stateMachine.ChangeState(StateId.Run);
-            if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Run && (horiz == 0f && vert == 0f))
-                stateMachine.ChangeState(StateId.Idle);
-
-            if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Run || (masterLogic.AllowMovementDuringHitstun && (StateId)stateMachine.GetCurrentStateEnum() == StateId.Hitstun))
-            {
-                if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Hitstun)
-                    moveVector *= masterLogic.MovementReductionDuringHitstun;
-
-                transform.LookAt(transform.position + moveVector);
-                transform.Translate(moveVector, Space.World);
-            }
-
-            // BUTTONS
-            ButtonList_OnKey.Clear();
-            ButtonList_OnKeyDown.Clear();
-            ButtonList_OnKeyUp.Clear();
-
-            for (int i = 0; i < 10; i++)
-            {
-                Button button = (Button)i;
-
-                if (Input.GetKeyDown("joystick " + playerDetails.id + " button " + i))
-                    ButtonList_OnKeyDown.Add(button);
-                if (Input.GetKeyUp("joystick " + playerDetails.id + " button " + i))
-                    ButtonList_OnKeyUp.Add(button);
-                if (Input.GetKey("joystick " + playerDetails.id + " button " + i))
-                    ButtonList_OnKey.Add(button);
-            }
-            if (ButtonList_OnKeyDown.Contains(Button.X))
-            {
-                stateMachine.ChangeState(StateId.Charge);
-            }
-            if (ButtonList_OnKeyDown.Contains(Button.Start))
-            {
-                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-            }
-            if (ButtonList_OnKeyDown.Contains(Button.Select))
-            {
-                masterLogic.viewDebug = !masterLogic.viewDebug;
-            }
-        }
+        return (StateId)stateMachine.GetCurrentStateEnum() == state;
+    }
+    public StateId getCurrentStateIdEnum()
+    {
+        return (StateId)stateMachine.GetCurrentStateEnum();
     }
 }
 

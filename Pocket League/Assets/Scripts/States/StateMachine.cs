@@ -8,7 +8,7 @@ public abstract class StateMachine
     protected abstract void Initialize();
     public StateMachine() { Initialize(); }
 
-    public void ChangeState(Enum stateId, bool on = true)
+    public void ChangeState(Enum stateId, bool on = true, bool forceTransition = false)
     {
 
         State state = FindState(stateId);
@@ -16,7 +16,7 @@ public abstract class StateMachine
         {
             StateGroup stateGroup = stateGroups[state.groupIndex];
             if (stateGroup != null)
-                stateGroup.ChangeState(state, on);
+                stateGroup.ChangeState(state, on, forceTransition);
         }
     }
 
@@ -40,14 +40,9 @@ public abstract class StateMachine
 
     #region LookupFunctions
 
-    public State GetCurrentState()
-    {
-        return stateGroups[0].currentState;
-    }
-
     public Enum GetCurrentStateEnum()
     {
-        return (StateId)stateGroups[0].currentState.id;
+        return (Enum)stateGroups[0].currentState.id;
     }
 
     public int GetCurrentStateId()

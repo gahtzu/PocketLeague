@@ -31,13 +31,14 @@ public class State
         name = stateId.ToString();
         isTransitional = transitional;
         transitions = stateTransitions;
+        hasNoTransitions = transitions == null;
     }
 
     //used to check if a state has a legal transition with the given stateId
     public bool CanTransition(Enum stateId)
     {
         //if no transitions object is set, then this state can freely transition to any other state within it's group
-        bool canTransition = transitions == null;
+        bool canTransition = false;
         if(transitions != null)
         {
             List<Enum> stateTransitions = transitions.states;
@@ -148,6 +149,8 @@ public class State
 
     //houses list of callback functions to call on state exit
     private List<Subscriber> exitSubscribers = new List<Subscriber>();
+
+    public bool hasNoTransitions { get; private set; }
 
     public int groupIndex
     {
