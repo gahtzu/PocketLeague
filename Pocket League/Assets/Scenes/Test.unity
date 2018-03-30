@@ -956,7 +956,8 @@ MonoBehaviour:
   maxPercentDealt: 30
   stockCount: 4
   ResetPercentOnKill: 1
-  ApplyMovementDuringHitstun: 1
+  AllowMovementDuringHitstun: 1
+  MovementReductionDuringHitstun: 0.35
   percentCharacterOffsetX: -15
   playerObj: {fileID: 1821231853052730, guid: fac6d1b8e98814f4f91f1491ca130330, type: 2}
   isGameOver: 0

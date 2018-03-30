@@ -13,70 +13,60 @@ public class MasterLogic : MonoBehaviour
     [Tooltip("Speed of the player... duh")]
     [SerializeField]
     public float playerSpeed;
-
     [Tooltip("When attacked at 0%, how many frames should hitstun/knockback last?")]
     [SerializeField]
     public int minHitstunLength;
     [Tooltip("When attacked at 100%, how many frames should hitstun/knockback last?")]
     [SerializeField]
     public int maxHitstunLength;
-
     [Tooltip("With how much velocity are you knocked back when attacked with a NON-charged attack?")]
     [SerializeField]
     public float minKnockbackVelocity;
     [Tooltip("With how much velocity are you knocked back when attacked with a FULLY-charged attack?")]
     [SerializeField]
     public float maxKnockbackVelocity;
-
     [Tooltip("How much EXTRA velocity is added when attacked at 0%")]
     [SerializeField]
     public float minKnockbackVelocityAdditionFromPercent;
     [Tooltip("How much EXTRA velocity is added when attacked at 100%")]
     [SerializeField]
     public float maxKnockbackVelocityAdditionFromPercent;
-
     [Tooltip("How big is your hitbox when attacking (NON-CHARGED)")]
     [SerializeField]
     public Vector3 smallHitboxScale;
     [Tooltip("How far away from the player's center should their hitbox be placed when attacking? (NON-CHARGED)")]
     [SerializeField]
     public float smallHitboxOffset;
-
     [Tooltip("How big is your hitbox when attacking (FULLY-CHARGED)")]
     [SerializeField]
     public Vector3 bigHitboxScale;
     [Tooltip("How far away from the player's center should their hitbox be placed when attacking? (FULLY-CHARGED)")]
     [SerializeField]
     public float bigHitboxOffset;
-
     [Tooltip("Our quickest attack will still take this many frames to automatically \"charge\"")]
     [SerializeField]
     public int minChargeFrames;
     [Tooltip("What is the maximum number of frames that an attack can be charged for? (automatically releases attack after)")]
     [SerializeField]
     public int maxChargeFrames;
-
     [Tooltip("How many frames does of lag do our attacks have? (NON-CHARGED)")]
     [SerializeField]
     public float minAttackCooldownFrames;
     [Tooltip("How many frames does of lag do our attacks have? (FULLY-CHARGED)")]
     [SerializeField]
     public float maxAttackCooldownFrames;
-
     [Tooltip("How many frames is our hitbox active while we are in attack lag? (NON-CHARGED)")]
     [SerializeField]
     public float minAttackHitboxActivationFrames;
     [Tooltip("How many frames is our hitbox active while we are in attack lag? (FULLY-CHARGED)")]
     [SerializeField]
     public float maxAttackHitboxActivationFrames;
-
     [Tooltip("How much percent do we add to the opponent when attacking them? (NON-CHARGED)")]
     [SerializeField]
     public float minPercentDealt;
     [Tooltip("How much percent do we add to the opponent when attacking them? (FULLY-CHARGED)")]
     [SerializeField]
     public float maxPercentDealt;
-
     [Tooltip("Number of stocks that a player starts with.")]
     [SerializeField]
     public int stockCount;
@@ -85,11 +75,19 @@ public class MasterLogic : MonoBehaviour
     public bool ResetPercentOnKill;
     [Tooltip("Should players be able to influence their direction while in hitstun?")]
     [SerializeField]
-    public bool ApplyMovementDuringHitstun;
-    [Tooltip("How many pixels does the percentages string offset from the center?")]
+    public bool AllowMovementDuringHitstun;
+    [Tooltip("(Only applies if 'AllowMovementDuringHitstun' is checked) How much should your movement influence your trajectory while in hitstun? 2 = you can move a lot during hitstun; 1 = regular movement during hitstun; 0 = none")]
+    [SerializeField]
+    public float MovementReductionDuringHitstun;
+    [Tooltip("How many pixels does the percentages string offset from the center of the player?")]
     [SerializeField]
     private float percentCharacterOffsetX;
-    ///////  THESE FIELDS ARE COMING SOON  ///////////////////////////////////////////////////////////////////////
+
+    [Header("Prefabs")]
+    public GameObject playerObj;
+
+    ///////  THESE ARE OLD CONCEPTS. WE PROB WONT USE MOST, BUT I LEAVE IT HERE AS A REMINDER  ///////////////////
+
     //[SerializeField]
     //public int techWindowFrames; //before hitting the rail, how many frames early can you input a tech successfully?
     //[SerializeField]
@@ -110,10 +108,8 @@ public class MasterLogic : MonoBehaviour
     //public int projectileStunFrames; //how long opponent is stunned when hit with projectile
     //[SerializeField]
     //public bool useSmashCamera; //true = camera is dynamic relative to players; false = camera is still with entire table in view
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    [Header("Prefabs")]
-    public GameObject playerObj;
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     #endregion
 
@@ -136,6 +132,7 @@ public class MasterLogic : MonoBehaviour
     [HideInInspector]
     public bool disablePlayersInputs = true;
     private Text goText;
+
     #endregion
 
     private void Start()
@@ -372,11 +369,11 @@ public class MasterLogic : MonoBehaviour
             for (int i = 0; i < players[1].playerDetails.stocks; i++)
                 player2stocks += "O";
             player2stocks += "]";
-          
+
             GUI.Box(new Rect((Screen.width / 4f) - 50, Screen.height - (Screen.height / 4f), Screen.width, Screen.height), "Player 1\n" + Mathf.Floor(players[0].playerDetails.percent) + "%\nStocks: " + players[0].playerDetails.stocks, percents);
             GUI.Box(new Rect(Screen.width - (Screen.width / 4f) - 50, Screen.height - (Screen.height / 4f), Screen.width, Screen.height), "Player 2\n" + Mathf.Floor(players[1].playerDetails.percent) + "%\nStocks: " + players[1].playerDetails.stocks, percents);
             GUI.color = Color.white;
-         }
+        }
 
     }
 

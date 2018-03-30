@@ -198,8 +198,11 @@ public class PocketPlayerController : MonoBehaviour
             if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Run && (horiz == 0f && vert == 0f))
                 stateMachine.ChangeState(StateId.Idle);
 
-            if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Run || (masterLogic.ApplyMovementDuringHitstun && (StateId)stateMachine.GetCurrentStateEnum() == StateId.Hitstun))
+            if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Run || (masterLogic.AllowMovementDuringHitstun && (StateId)stateMachine.GetCurrentStateEnum() == StateId.Hitstun))
             {
+                if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Hitstun)
+                    moveVector *= masterLogic.MovementReductionDuringHitstun;
+
                 transform.LookAt(transform.position + moveVector);
                 transform.Translate(moveVector, Space.World);
             }
