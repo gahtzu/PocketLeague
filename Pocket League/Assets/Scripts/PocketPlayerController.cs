@@ -22,7 +22,7 @@ public class PocketPlayerController : MonoBehaviour
     [HideInInspector]
     public PlayerDetails playerDetails = new PlayerDetails(-1);
     [HideInInspector]
-    public Vector3 trajectory = new Vector3(0f, 0f, 0f);
+    public Vector3 knockBackTrajectory = new Vector3(0f, 0f, 0f);
 
     private List<Button> ButtonList_OnKeyDown = new List<Button>();
     private List<Button> ButtonList_OnKeyUp = new List<Button>();
@@ -90,33 +90,31 @@ public class PocketPlayerController : MonoBehaviour
 
     private IEnumerator getHit()
     {
+        //disable opponents hitbox until their next attack
         otherPlayer.transform.Find("hitbox").GetComponent<BoxCollider>().enabled = false;
 
         //values weighted from 0 to 1
         float _chargeMultiple = otherPlayer.GetComponent<PocketPlayerController>().chargeMultiple;
         float _percentMultiple = playerDetails.percent / 100f;
 
-        //percent
-        float percentToAdd = ScaleMultiplier(masterLogic.minPercentDealt, masterLogic.maxPercentDealt, _chargeMultiple);
-        playerDetails.percent += percentToAdd;
+        //add percent from being hit
+        playerDetails.percent += ScaleMultiplier(masterLogic.minPercentDealt, masterLogic.maxPercentDealt, _chargeMultiple);
 
-        //hitstun length
+        //hitstun length, and velocity (based on percent and charge)
         float hitstunLength = ScaleMultiplier(masterLogic.minHitstunLength, masterLogic.maxHitstunLength, _percentMultiple);
-
-        //velocity
         float velocity = ScaleMultiplier(masterLogic.minKnockbackVelocity, masterLogic.maxKnockbackVelocity, _chargeMultiple);
         velocity += ScaleMultiplier(masterLogic.minKnockbackVelocityAdditionFromPercent, masterLogic.maxKnockbackVelocityAdditionFromPercent, _percentMultiple);
 
         //vector A is the direction the player is facing 
         //vector B is the direction of the attacker to the victim
-        Vector3 attackAngleTrajectory = (otherPlayer.transform.Find("hitbox").position - otherPlayer.transform.position).normalized * (velocity);
-        Vector3 playerAngleTrajectory = (transform.position - otherPlayer.transform.position).normalized * (velocity);
+        Vector3 attackAngleTrajectory = (otherPlayer.transform.Find("hitbox").position - otherPlayer.transform.position).normalized;
+        Vector3 playerAngleTrajectory = (transform.position - otherPlayer.transform.position).normalized;
         //couldn't decide which is better, so in-between seems like a good spot for now
-        trajectory = Vector3.Lerp(attackAngleTrajectory, playerAngleTrajectory, .5f);
+        knockBackTrajectory = ((attackAngleTrajectory + playerAngleTrajectory) * .5f).normalized * velocity;
 
         for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
         {
-            transform.Translate(trajectory, Space.World);
+            transform.Translate(knockBackTrajectory, Space.World);
             yield return new WaitForEndOfFrame();
         }
 
@@ -129,16 +127,16 @@ public class PocketPlayerController : MonoBehaviour
         while ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Charge)
         {
             if (chargeCounter > masterLogic.maxChargeFrames)
-            {
+            {   //held for maximum charge
                 chargeCounter = masterLogic.maxChargeFrames;
                 stateMachine.ChangeState(StateId.AttackRecovery);
             }
             else if (chargeCounter >= masterLogic.minChargeFrames && !ButtonList_OnKey.Contains(Button.X))
-            {
+            {   //we let go of charge
                 stateMachine.ChangeState(StateId.AttackRecovery);
             }
             else
-            {
+            {   //still charging
                 yield return new WaitForEndOfFrame();
                 chargeCounter++;
             }
@@ -147,16 +145,7 @@ public class PocketPlayerController : MonoBehaviour
 
     private IEnumerator attackRecovery()
     {
-        if ((StateId)stateMachine.GetCurrentStateEnum() == StateId.Hitstun)
-        {
-            hitBox.GetComponent<BoxCollider>().enabled = false;
-            hitBox.GetComponent<MeshRenderer>().enabled = false;
-            yield return null;
-        }
-
-        hitBox.GetComponent<BoxCollider>().enabled = true;
-        hitBox.GetComponent<MeshRenderer>().enabled = true;
-
+        ToggleColliderAndMeshRenderer(hitBox, true);
         chargeMultiple = ((float)chargeCounter - masterLogic.minChargeFrames) / (masterLogic.maxChargeFrames - masterLogic.minChargeFrames);
 
         float framesToRecover = ScaleMultiplier(masterLogic.minAttackCooldownFrames, masterLogic.maxAttackCooldownFrames, chargeMultiple);
@@ -170,14 +159,18 @@ public class PocketPlayerController : MonoBehaviour
         {
             if (i > hitboxActivationMultiple)
             {
-                hitBox.GetComponent<BoxCollider>().enabled = false;
-                hitBox.GetComponent<MeshRenderer>().enabled = false;
+                ToggleColliderAndMeshRenderer(hitBox, false);
             }
             yield return new WaitForEndOfFrame();
         }
-        hitBox.GetComponent<BoxCollider>().enabled = false;
-        hitBox.GetComponent<MeshRenderer>().enabled = false;
+        ToggleColliderAndMeshRenderer(hitBox, false);
         stateMachine.ChangeState(StateId.Idle);
+    }
+
+    private void ToggleColliderAndMeshRenderer(GameObject go, bool isEnabled)
+    {
+        go.GetComponent<BoxCollider>().enabled = isEnabled;
+        go.GetComponent<MeshRenderer>().enabled = isEnabled;
     }
 
     private float ScaleMultiplier(float min, float max, float multiple)
@@ -192,7 +185,7 @@ public class PocketPlayerController : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (playerDetails.id > 0)
+        if (playerDetails.id > 0 && !masterLogic.disablePlayersInputs)
         {
             // JOYSTICKS
             vert = Input.GetAxis("Player" + playerDetails.id + "Vertical");
@@ -226,15 +219,18 @@ public class PocketPlayerController : MonoBehaviour
                     ButtonList_OnKeyUp.Add(button);
                 if (Input.GetKey("joystick " + playerDetails.id + " button " + i))
                     ButtonList_OnKey.Add(button);
-
-                if (ButtonList_OnKeyDown.Contains(Button.X))
-                {
-                    stateMachine.ChangeState(StateId.Charge);
-                }
-                if (ButtonList_OnKeyDown.Contains(Button.Start) && masterLogic.isGameOver)
-                {
-                    SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-                }
+            }
+            if (ButtonList_OnKeyDown.Contains(Button.X))
+            {
+                stateMachine.ChangeState(StateId.Charge);
+            }
+            if (ButtonList_OnKeyDown.Contains(Button.Start))
+            {
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            }
+            if (ButtonList_OnKeyDown.Contains(Button.Select))
+            {
+                masterLogic.viewDebug = !masterLogic.viewDebug;
             }
         }
     }

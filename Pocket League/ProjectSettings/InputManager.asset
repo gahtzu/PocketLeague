@@ -69,3 +69,67 @@ InputManager:
     type: 2
     axis: 0
     joyNum: 2
+  - serializedVersion: 3
+    m_Name: Submit
+    descriptiveName: (this is unused. only stops a canvas error from happening)
+    descriptiveNegativeName: 
+    negativeButton: 
+    positiveButton: 
+    altNegativeButton: 
+    altPositiveButton: 
+    gravity: 3
+    dead: 0.4
+    sensitivity: 5
+    snap: 0
+    invert: 0
+    type: 2
+    axis: 0
+    joyNum: 2
+  - serializedVersion: 3
+    m_Name: Cancel
+    descriptiveName: (this is unused. only stops a canvas error from happening)
+    descriptiveNegativeName: 
+    negativeButton: 
+    positiveButton: 
+    altNegativeButton: 
+    altPositiveButton: 
+    gravity: 3
+    dead: 0.4
+    sensitivity: 5
+    snap: 0
+    invert: 0
+    type: 2
+    axis: 0
+    joyNum: 2
+  - serializedVersion: 3
+    m_Name: Horizontal
+    descriptiveName: (this is unused. only stops a canvas error from happening)
+    descriptiveNegativeName: 
+    negativeButton: 
+    positiveButton: 
+    altNegativeButton: 
+    altPositiveButton: 
+    gravity: 3
+    dead: 0.4
+    sensitivity: 5
+    snap: 0
+    invert: 0
+    type: 2
+    axis: 0
+    joyNum: 2
+  - serializedVersion: 3
+    m_Name: Vertical
+    descriptiveName: (this is unused. only stops a canvas error from happening)
+    descriptiveNegativeName: 
+    negativeButton: 
+    positiveButton: 
+    altNegativeButton: 
+    altPositiveButton: 
+    gravity: 3
+    dead: 0.4
+    sensitivity: 5
+    snap: 0
+    invert: 0
+    type: 2
+    axis: 0
+    joyNum: 2

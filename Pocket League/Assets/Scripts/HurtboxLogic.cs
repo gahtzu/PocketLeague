@@ -16,7 +16,7 @@ public class HurtboxLogic : MonoBehaviour
         if (other.tag == "Wall")
         {
             PocketPlayerController pocketController = transform.parent.gameObject.GetComponent<PocketPlayerController>();
-            pocketController.trajectory = Vector3.Reflect(pocketController.trajectory, other.transform.position.normalized);
+            pocketController.knockBackTrajectory = Vector3.Reflect(pocketController.knockBackTrajectory, other.transform.position.normalized);
         }
         else if (other.tag == "Hole")
         {
@@ -27,9 +27,8 @@ public class HurtboxLogic : MonoBehaviour
     private void OnTriggerStay(Collider other)
     {
         StateId currentState = (StateId)transform.parent.gameObject.GetComponent<PocketPlayerController>().stateMachine.GetCurrentStateEnum();
-        if (other.tag == "Wall")
+        if (other.tag == "Wall" && !masterLogic.disablePlayersInputs)
         {
-            print(other.ClosestPointOnBounds(transform.position));
             transform.parent.position = other.ClosestPointOnBounds(transform.parent.position);
             transform.parent.Translate(other.transform.position.normalized * -1f * .5f, Space.World);
         }

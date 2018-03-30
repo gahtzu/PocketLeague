@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class MasterLogic : MonoBehaviour
 {
@@ -130,11 +131,19 @@ public class MasterLogic : MonoBehaviour
     private int victoryPlayer = 1;
     private Camera gamecam;
     private float wordBoxOffsetX;
-
+    [HideInInspector]
+    public bool viewDebug = false;
+    [HideInInspector]
+    public bool disablePlayersInputs = true;
+    private Text goText;
     #endregion
 
     private void Start()
     {
+        goText = GameObject.Find("GoText").GetComponent<Text>();
+        goText.fontSize = 0;
+        goText.text = "";
+
         spawnPositions.Add(new Vector3(-10f, 0f, 0f));
         spawnPositions.Add(new Vector3(10f, 0f, 0f));
         gamecam = GameObject.Find("Main Camera").GetComponent<Camera>();
@@ -148,6 +157,75 @@ public class MasterLogic : MonoBehaviour
 
         GameObject.Find("Player 1").GetComponent<PocketPlayerController>().otherPlayer = GameObject.Find("Player 2");
         GameObject.Find("Player 2").GetComponent<PocketPlayerController>().otherPlayer = GameObject.Find("Player 1");
+
+        StartCoroutine("ResetPlayers");
+    }
+
+    private void SetGoTextProperties(int fontSize, string text, Color color)
+    {
+        goText.fontSize = fontSize;
+        goText.text = text;
+        goText.color = color;
+    }
+    private void SetGoTextProperties(int fontSize, string text)
+    {
+        goText.fontSize = fontSize;
+        goText.text = text;
+    }
+    private void SetGoTextProperties(int fontSize)
+    {
+        goText.fontSize = fontSize;
+    }
+
+    private IEnumerator ResetPlayers()
+    {
+        disablePlayersInputs = true;
+        int framesUntilNextNumber = 75;
+        int startingSize = 120;
+        float incrementToDecreaseSize = 1.35f;
+        float incrementTotal = 0f;
+        Color startingColor = goText.color;
+
+        //3333333333333333333
+        SetGoTextProperties(startingSize, "3");
+        for (int i = 0; i < framesUntilNextNumber; i++)
+        {
+            incrementTotal += incrementToDecreaseSize;
+            SetGoTextProperties(startingSize - Mathf.FloorToInt(incrementTotal));
+            yield return new WaitForEndOfFrame();
+        }
+        incrementTotal = 0f;
+
+
+        //2222222222222222222
+        SetGoTextProperties(startingSize, "2");
+        for (int i = 0; i < framesUntilNextNumber; i++)
+        {
+            incrementTotal += incrementToDecreaseSize;
+            SetGoTextProperties(startingSize - Mathf.FloorToInt(incrementTotal));
+            yield return new WaitForEndOfFrame();
+        }
+        incrementTotal = 0f;
+
+
+        //11111111111111111111111111
+        SetGoTextProperties(startingSize, "1");
+        for (int i = 0; i < framesUntilNextNumber; i++)
+        {
+            incrementTotal += incrementToDecreaseSize;
+            SetGoTextProperties(startingSize - Mathf.FloorToInt(incrementTotal));
+            yield return new WaitForEndOfFrame();
+        }
+        incrementTotal = 0f;
+        disablePlayersInputs = false;
+
+
+        //GOOOOOOOOOOOO!!!!
+        SetGoTextProperties(140, "GO!", Color.green);
+        for (int i = 0; i < framesUntilNextNumber; i++)
+            yield return new WaitForEndOfFrame();
+        incrementTotal = 0f;
+        SetGoTextProperties(0, "", startingColor);
     }
 
     public void InitializePlayer(int id)
@@ -163,6 +241,7 @@ public class MasterLogic : MonoBehaviour
     public void LoseStock(PocketPlayerController player)
     {
         player.playerDetails.stocks--;
+        disablePlayersInputs = true;
 
         foreach (PocketPlayerController _player in players)
         {
@@ -171,9 +250,7 @@ public class MasterLogic : MonoBehaviour
         }
 
         if (player.playerDetails.stocks == 0)
-        {
             EndGame();
-        }
         else
         {
             player.gameObject.transform.position = spawnPositions[player.playerDetails.id - 1];
@@ -181,23 +258,23 @@ public class MasterLogic : MonoBehaviour
             player.playerDetails.percent = 0f;
             if (ResetPercentOnKill)
                 player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.percent = 0f;
+            StartCoroutine("ResetPlayers");
         }
+
     }
 
     public void EndGame()
     {
         isGameOver = true;
 
-
         for (int i = 0; i < players.Count; i++)
-        {
             if (players[i].playerDetails.stocks == 0)
+            {
                 victoryPlayer = players[i].otherPlayer.GetComponent<PocketPlayerController>().playerDetails.id;
+                Destroy(players[i].gameObject);
+            }
 
-            Destroy(players[i].gameObject);
-        }
-
-
+        SetGoTextProperties(50, "Player " + victoryPlayer + " is the winner! Press [Start] to play again!");
     }
 
     private void Update()
@@ -216,6 +293,7 @@ public class MasterLogic : MonoBehaviour
         GUIStyle green = new GUIStyle(),
                  small = new GUIStyle(),
                  header = new GUIStyle(),
+                 viewDebugStyle = new GUIStyle(),
                  percents = new GUIStyle(),
                  percentsAttached = new GUIStyle(),
                  bigOl = new GUIStyle();
@@ -226,6 +304,9 @@ public class MasterLogic : MonoBehaviour
         green.normal.textColor = Color.green;
         header.fontSize = 20;
         header.normal.textColor = Color.white;
+        viewDebugStyle.fontSize = 25;
+        viewDebugStyle.normal.textColor = GUI.color = new Color(1f, 1f, 1f, .75f);
+
         small.fontSize = 14;
         small.normal.textColor = Color.white;
         percents.fontSize = 30;
@@ -244,46 +325,58 @@ public class MasterLogic : MonoBehaviour
                 newColor.a = ScaleMultiplier(-.2f, .75f, Vector3.Distance(player.transform.position, player.otherPlayer.transform.position) / 8f);
                 percentsAttached.normal.textColor = newColor;
                 GUI.Box(new Rect(gamecam.WorldToScreenPoint(player.gameObject.transform.position).x - wordBoxOffsetX, Screen.height - gamecam.WorldToScreenPoint(player.gameObject.transform.position).y - 53, 100f, 100f), Mathf.Floor(player.playerDetails.percent).ToString() + "%", percentsAttached);
-                //GUI.Box(new Rect(gamecam.WorldToScreenPoint(player.gameObject.transform.position).x - 10, Screen.height - gamecam.WorldToScreenPoint(player.gameObject.transform.position).y - 25, 100f, 100f), Mathf.Floor(player.playerDetails.id).ToString() +, percentsAttached);
             }
         }
         catch { }
         GUILayout.Label(" ");
         GUILayout.Label(" ");
         GUILayout.Label(" ");
-
-        GUILayout.Label("                    FPS: " + fps, small);
-        GUILayout.Label(" ");
-        for (int j = 1; j < players.Count + 1; j++)
+        if (!viewDebug)
         {
-            GUILayout.Label("             Player " + j.ToString() + " State: " + players[j - 1].stateMachine.GetCurrentState().name, header);
-            GUILayout.Label("             Inputs:", header);
-            GUILayout.Label("                    X=" + Input.GetAxis("Player" + j + "Horizontal").ToString("0.###"), small);
-            GUILayout.Label("                    Y=" + Input.GetAxis("Player" + j + "Vertical").ToString("0.###"), small);
-
-            for (int i = 0; i < 10; i++)
-            {
-                if (Input.GetKey("joystick " + j + " button " + i))
-                    GUILayout.Label("                    " + ((Button)i).ToString(), green);
-                else
-                    GUILayout.Label("                    " + ((Button)i).ToString(), small);
-            }
-
+            GUI.Box(new Rect((Screen.width / 2.5f), Screen.height - (Screen.height / 8f), Screen.width, Screen.height), "Press [Select] to toggle Debug Info", viewDebugStyle);
+        }
+        else
+        {
+            GUI.color = Color.white;
+            GUILayout.Label("                    FPS: " + fps, small);
             GUILayout.Label(" ");
+            for (int j = 1; j < players.Count + 1; j++)
+            {
+                GUILayout.Label("             Player " + j.ToString() + " State: " + players[j - 1].stateMachine.GetCurrentState().name, header);
+                GUILayout.Label("             Inputs:", header);
+                GUILayout.Label("                    X=" + Input.GetAxis("Player" + j + "Horizontal").ToString("0.###"), small);
+                GUILayout.Label("                    Y=" + Input.GetAxis("Player" + j + "Vertical").ToString("0.###"), small);
 
+                for (int i = 0; i < 10; i++)
+                {
+                    if (Input.GetKey("joystick " + j + " button " + i))
+                        GUILayout.Label("                    " + ((Button)i).ToString(), green);
+                    else
+                        GUILayout.Label("                    " + ((Button)i).ToString(), small);
+                }
+
+                GUILayout.Label(" ");
+
+            }
         }
         string spaces = "                                                           ";
         GUILayout.BeginArea(new Rect(Screen.width / 3.5f, Screen.height / 2f, Screen.width, Screen.height));
-
-        if (isGameOver)
-        {
-            GUILayout.Label("Player " + victoryPlayer + " won!  Press Start to play again!", bigOl);
-
-        }
-
         GUILayout.EndArea();
         if (!isGameOver)
-            GUILayout.Label(spaces + "[P1] " + Mathf.Floor(players[0].playerDetails.percent) + "% (" + players[0].playerDetails.stocks + " stocks)" + spaces + "[P2] " + Mathf.Floor(players[1].playerDetails.percent) + "% (" + players[1].playerDetails.stocks + " stocks)", percents);
+        {
+            GUI.color = new Color(1f, 1f, 1f, .75f);
+            string player1stocks = "[", player2stocks = "[";
+            for (int i = 0; i < players[0].playerDetails.stocks; i++)
+                player1stocks += "O";
+            player1stocks += "]";
+            for (int i = 0; i < players[1].playerDetails.stocks; i++)
+                player2stocks += "O";
+            player2stocks += "]";
+          
+            GUI.Box(new Rect((Screen.width / 4f) - 50, Screen.height - (Screen.height / 4f), Screen.width, Screen.height), "Player 1\n" + Mathf.Floor(players[0].playerDetails.percent) + "%\nStocks: " + players[0].playerDetails.stocks, percents);
+            GUI.Box(new Rect(Screen.width - (Screen.width / 4f) - 50, Screen.height - (Screen.height / 4f), Screen.width, Screen.height), "Player 2\n" + Mathf.Floor(players[1].playerDetails.percent) + "%\nStocks: " + players[1].playerDetails.stocks, percents);
+            GUI.color = Color.white;
+         }
 
     }
 
