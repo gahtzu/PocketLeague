@@ -119,9 +119,9 @@ public class MasterLogic : MonoBehaviour
     [HideInInspector]
     public GameStateMachine gameStateMachine = new GameStateMachine();
     private int frameCount = 0, victoryPlayer = 1;
-    private float nextUpdate = 0.0f, 
-                  fps = 0.0f, 
-                  wordBoxOffsetX, 
+    private float nextUpdate = 0.0f,
+                  fps = 0.0f,
+                  wordBoxOffsetX,
                   updateRate = 4.0f;  // 4 updates per sec.
     private List<Vector3> spawnPositions = new List<Vector3>();
     private Camera mainCamera;
@@ -190,7 +190,7 @@ public class MasterLogic : MonoBehaviour
             player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.percent = 0f;
 
 
-        gameStateMachine.ChangeState(GameStateId.Countdown);
+        StopCoroutine("CountDown");
 
         StartCoroutine("CountDown");
     }
@@ -199,8 +199,9 @@ public class MasterLogic : MonoBehaviour
     {
         gameStateMachine.ChangeState(GameStateId.Countdown);
 
-        int framesUntilNextNumber = 75, startingSize = 120;
-        float incrementToDecreaseSize = 1.35f, incrementTotal = 0f;
+        int framesUntilNextNumber = 125, startingSize = 120;
+        float incrementToDecreaseSize = .3f, incrementTotal = 0f;
+        SetGoTextProperties(startingSize, "3", Color.white);
         Color startingColor = goText.color;
 
         //3.. 2.. 1..
@@ -253,12 +254,13 @@ public class MasterLogic : MonoBehaviour
 
     public void EndGame(PocketPlayerController player)
     {
-        gameStateMachine.ChangeState(GameStateId.Results);
+        StopCoroutine("CountDown");
 
+        gameStateMachine.ChangeState(GameStateId.Results);
         victoryPlayer = player.playerDetails.id == 1 ? 2 : 1;
         player.stateMachine.ChangeState(PlayerState.Dead);
 
-        SetGoTextProperties(50, "Player " + victoryPlayer + " is the winner! Hold [Start] to play again!");
+        SetGoTextProperties(50, "Player " + victoryPlayer + " is the winner! Hold [Start] to play again!", Color.cyan);
     }
 
 
@@ -291,7 +293,7 @@ public class MasterLogic : MonoBehaviour
         header.fontSize = 20;
         header.normal.textColor = Color.white;
         viewDebugStyle.fontSize = 17;
-        viewDebugStyle.normal.textColor = GUI.color = new Color(1f, 1f, 1f, .60f);
+        viewDebugStyle.normal.textColor = GUI.color = new Color(1f, 1f, 1f, .80f);
 
         small.fontSize = 14;
         small.normal.textColor = Color.white;
@@ -323,9 +325,9 @@ public class MasterLogic : MonoBehaviour
 
 
 
-        GUI.Box(new Rect(Screen.width - 410f, 45f, Screen.width, Screen.height), "Hold [Start] to restart this match.", viewDebugStyle);
-        GUI.Box(new Rect(Screen.width - 410f, 67f, Screen.width, Screen.height), "Press [Select] to toggle Debug Info", viewDebugStyle);
-        GUI.Box(new Rect(Screen.width - 410f, 89f, Screen.width, Screen.height), "Press [Start] to skip the countdown", viewDebugStyle);
+        GUI.Box(new Rect(Screen.width - 440f, 45f, Screen.width, Screen.height), "Hold [Start] to restart this match.", viewDebugStyle);
+        GUI.Box(new Rect(Screen.width - 440f, 67f, Screen.width, Screen.height), "Press [Select] to toggle Debug Info", viewDebugStyle);
+        GUI.Box(new Rect(Screen.width - 440f, 89f, Screen.width, Screen.height), "Press [Start] to skip the countdown", viewDebugStyle);
 
 
         if (viewDebug)
@@ -335,7 +337,7 @@ public class MasterLogic : MonoBehaviour
             GUILayout.Label(" ");
             for (int j = 1; j < players.Count + 1; j++)
             {
-                //GUILayout.Label("             Player " + j.ToString() + " State: " + players[j - 1].stateMachine.GetCurrentState().name, header);
+                GUILayout.Label("             Player " + j.ToString() + " State: " + players[j - 1].stateMachine.GetCurrentStateEnum().ToString(), header);
                 GUILayout.Label("             Inputs:", header);
                 GUILayout.Label("                    X=" + Input.GetAxis("Player" + j + "Horizontal").ToString("0.###"), small);
                 GUILayout.Label("                    Y=" + Input.GetAxis("Player" + j + "Vertical").ToString("0.###"), small);

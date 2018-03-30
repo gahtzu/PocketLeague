@@ -675,12 +675,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerSpeed: 0.165
-  minHitstunLength: 55
+  minHitstunLength: 35
   maxHitstunLength: 125
   minKnockbackVelocity: 0.13
   maxKnockbackVelocity: 0.35
   minKnockbackVelocityAdditionFromPercent: 0
-  maxKnockbackVelocityAdditionFromPercent: 0.08
+  maxKnockbackVelocityAdditionFromPercent: 0.1
   smallHitboxScale: {x: 2.3, y: 0.3, z: 2.3}
   smallHitboxOffset: 1.1
   bigHitboxScale: {x: 4.2, y: 0.3, z: 4.2}

@@ -100,7 +100,6 @@ public class PocketPlayerController : MonoBehaviour
     void GetHit()
     {
         model.GetComponent<Renderer>().material.color = color_hitstun;
-        StopCoroutine("attackRecovery");
         StopCoroutine("chargeAttack");
         StopCoroutine("getHit");
         StartCoroutine("getHit");
@@ -183,7 +182,8 @@ public class PocketPlayerController : MonoBehaviour
 
         ToggleHitbox(hitBox, false);
 
-         stateMachine.ChangeState(PlayerState.Actionable);
+        if (isPlayerStateActive(PlayerState.AttackRecovery))
+            stateMachine.ChangeState(PlayerState.Actionable);
     }
 
     private void LateUpdate()
@@ -200,24 +200,23 @@ public class PocketPlayerController : MonoBehaviour
             //by normalizing the vector, we solve the 'diagonal is faster' problem
             moveVector = (new Vector3(horiz, 0f, vert).normalized) * masterLogic.playerSpeed;
 
+            stateMachine.ChangeState(PlayerState.Idle);
+
             //only want to be moving during these scenes   
-            if (masterLogic.isGameStateActive(GameStateId.Battle) || masterLogic.isGameStateActive(GameStateId.Results))
-            {
+            if (!masterLogic.isGameStateActive(GameStateId.Countdown))
                 if (horiz != 0f || vert != 0f)
                     stateMachine.ChangeState(PlayerState.Run);
-                else if (!isPlayerStateActive(PlayerState.Dead))
-                    stateMachine.ChangeState(PlayerState.Idle);
 
-                //allow movement via joystick if we are running, or if we are in hitstun (when AllowMovementDuringHitstun=true)
-                if (isPlayerStateActive(PlayerState.Run) || (masterLogic.AllowMovementDuringHitstun && isPlayerStateActive(PlayerState.Hitstun)))
-                {
-                    if (isPlayerStateActive(PlayerState.Hitstun))
-                        moveVector *= masterLogic.MovementReductionDuringHitstun;
-                    else if (isPlayerStateActive(PlayerState.Run))
-                        transform.LookAt(transform.position + moveVector);
 
-                    transform.Translate(moveVector, Space.World);
-                }
+            //allow movement via joystick if we are running, or if we are in hitstun (when AllowMovementDuringHitstun=true)
+            if (isPlayerStateActive(PlayerState.Run) || (masterLogic.AllowMovementDuringHitstun && isPlayerStateActive(PlayerState.Hitstun)))
+            {
+                if (isPlayerStateActive(PlayerState.Hitstun))
+                    moveVector *= masterLogic.MovementReductionDuringHitstun;
+                else if (isPlayerStateActive(PlayerState.Run))
+                    transform.LookAt(transform.position + moveVector);
+
+                transform.Translate(moveVector, Space.World);
             }
 
             //check all 10 xbox controller buttons
