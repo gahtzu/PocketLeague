@@ -136,7 +136,7 @@ public class PocketPlayerController : MonoBehaviour
             yield return new WaitForEndOfFrame();
         }
 
-        stateMachine.ChangeState(PlayerState.Idle, true, true);
+        stateMachine.ChangeState(PlayerState.Actionable);
     }
 
     private IEnumerator chargeAttack()
@@ -183,8 +183,7 @@ public class PocketPlayerController : MonoBehaviour
 
         ToggleHitbox(hitBox, false);
 
-        if (isPlayerStateActive(PlayerState.AttackRecovery))
-            stateMachine.ChangeState(PlayerState.Idle, forceTransition: true);
+         stateMachine.ChangeState(PlayerState.Actionable);
     }
 
     private void LateUpdate()

@@ -119,7 +119,10 @@ public class MasterLogic : MonoBehaviour
     [HideInInspector]
     public GameStateMachine gameStateMachine = new GameStateMachine();
     private int frameCount = 0, victoryPlayer = 1;
-    private float nextUpdate = 0.0f, fps = 0.0f, updateRate = 4.0f, wordBoxOffsetX;  // 4 updates per sec.
+    private float nextUpdate = 0.0f, 
+                  fps = 0.0f, 
+                  wordBoxOffsetX, 
+                  updateRate = 4.0f;  // 4 updates per sec.
     private List<Vector3> spawnPositions = new List<Vector3>();
     private Camera mainCamera;
     private Text goText;
@@ -138,7 +141,7 @@ public class MasterLogic : MonoBehaviour
         SetGoTextProperties(1, "", goText.color);
         spawnPositions.AddRange(new List<Vector3>() { new Vector3(-10f, 0f, 0f), new Vector3(10f, 0f, 0f), new Vector3(0f, -5f, 0f), new Vector3(0f, 5f, 0f) });
         mainCamera = GameObject.Find("Main Camera").GetComponent<Camera>();
-       
+
         gameStateMachine.Subscribe(Countdown, GameStateId.Countdown, true);
         gameStateMachine.Subscribe(Battle, GameStateId.Battle, true);
         gameStateMachine.Subscribe(Death, GameStateId.Death, true);
@@ -176,7 +179,7 @@ public class MasterLogic : MonoBehaviour
 
         foreach (PocketPlayerController _player in players)
         {
-            _player.stateMachine.ChangeState(PlayerState.Idle, true, true);
+            _player.stateMachine.ChangeState(PlayerState.Actionable);
             _player.StopAllCoroutines();
         }
 
@@ -214,7 +217,7 @@ public class MasterLogic : MonoBehaviour
         }
 
         //..GO!
-        gameStateMachine.ChangeState(GameStateId.Battle, true, true);
+        gameStateMachine.ChangeState(GameStateId.Battle);
         SetGoTextProperties(140, "GO!", Color.green);
         for (int i = 0; i < framesUntilNextNumber; i++) { yield return new WaitForEndOfFrame(); }
         SetGoTextProperties(0, "", startingColor);
@@ -231,7 +234,7 @@ public class MasterLogic : MonoBehaviour
     {
         player.playerDetails.stocks--;
         player.StopAllCoroutines();
-        player.stateMachine.ChangeState(PlayerState.Dead, forceTransition: true);
+        player.stateMachine.ChangeState(PlayerState.Dead);
 
         //fall into the abyss
         for (int i = 0; i < 50; i++)

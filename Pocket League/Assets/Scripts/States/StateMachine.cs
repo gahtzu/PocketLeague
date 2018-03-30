@@ -8,7 +8,7 @@ public abstract class StateMachine
     protected abstract void Initialize();
     public StateMachine() { Initialize(); }
 
-    public void ChangeState(Enum stateId, bool on = true, bool forceTransition = false)
+    public void ChangeState(Enum stateId, bool on = true)
     {
 
         State state = FindState(stateId);
@@ -16,7 +16,7 @@ public abstract class StateMachine
         {
             StateGroup stateGroup = stateGroups[state.groupIndex];
             if (stateGroup != null)
-                stateGroup.ChangeState(state, on, forceTransition);
+                stateGroup.ChangeState(state, on);
         }
     }
 

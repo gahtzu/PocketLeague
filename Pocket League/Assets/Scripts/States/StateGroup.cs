@@ -23,7 +23,7 @@ public class StateGroup
     }
 
     //used to trigger a state change within this state group
-    public void ChangeState(State state, bool on = true, bool forceTransition = false)
+    public void ChangeState(State state, bool on = true)
     {
         //if user is turning a state off then return right after
         if (!on)
@@ -37,7 +37,7 @@ public class StateGroup
         }
 
         //check to see if the current state can legally transition to the incoming state, if not then return
-        if (currentState != null && !forceTransition)
+        if (currentState != null)
         {
             if (!currentState.CanTransition(state.id))
             {
@@ -48,7 +48,7 @@ public class StateGroup
         }
 
         //check is state 'isTransitional', if not then override the currentState of the group
-        if (!state.isTransitional || forceTransition)
+        if (!state.isTransitional)
         {
             State previousCurrentState = currentState;
             currentState = state;
