@@ -11,6 +11,8 @@ public class PocketPlayerController : MonoBehaviour
 
     [HideInInspector]
     public PocketPlayerMachine stateMachine = new PocketPlayerMachine();
+    private GameStateMachine gameStateMachine;
+
     [HideInInspector]
     public MasterLogic masterLogic;
     [HideInInspector]
@@ -45,17 +47,21 @@ public class PocketPlayerController : MonoBehaviour
     {
         playerDetails = new PlayerDetails(playerId);
         masterLogic = GameObject.FindObjectOfType<MasterLogic>();
+        gameStateMachine = masterLogic.gameStateMachine;
+
         model = transform.Find("PlayerModel").gameObject;
         model.GetComponent<Renderer>().material.color = color_idle;
+
         hitBox = transform.Find("hitbox").gameObject;
         hitBox.transform.localScale = masterLogic.smallHitboxScale;
         hitBox.transform.localPosition += new Vector3(0f, 0f, masterLogic.smallHitboxOffset);
-        stateMachine.Subscribe(BeginCharge, StateId.Charge, true);
-        stateMachine.Subscribe(AttackRecovery, StateId.AttackRecovery, true);
-        stateMachine.Subscribe(GetHit, StateId.Hitstun, true);
-        stateMachine.Subscribe(Idle, StateId.Idle, true);
-        stateMachine.Subscribe(Run, StateId.Run, true);
-        stateMachine.Subscribe(Dead, StateId.Dead, true);
+
+        stateMachine.Subscribe(BeginCharge, PlayerState.Charge, true);
+        stateMachine.Subscribe(AttackRecovery, PlayerState.AttackRecovery, true);
+        stateMachine.Subscribe(GetHit, PlayerState.Hitstun, true);
+        stateMachine.Subscribe(Idle, PlayerState.Idle, true);
+        stateMachine.Subscribe(Run, PlayerState.Run, true);
+        stateMachine.Subscribe(Dead, PlayerState.Dead, true);
     }
 
     void Dead()
@@ -130,22 +136,22 @@ public class PocketPlayerController : MonoBehaviour
             yield return new WaitForEndOfFrame();
         }
 
-        stateMachine.ChangeState(StateId.Idle, true, true);
+        stateMachine.ChangeState(PlayerState.Idle, true, true);
     }
 
     private IEnumerator chargeAttack()
     {
         chargeCounter = 0;
-        while (isCurrentCharacterState(StateId.Charge))
+        while (isPlayerStateActive(PlayerState.Charge))
         {
             if (chargeCounter > masterLogic.maxChargeFrames)
             {   //held for maximum charge
                 chargeCounter = masterLogic.maxChargeFrames;
-                stateMachine.ChangeState(StateId.AttackRecovery);
+                stateMachine.ChangeState(PlayerState.AttackRecovery);
             }
             else if (chargeCounter >= masterLogic.minChargeFrames && !ButtonList_OnKey.Contains(Button.X))
             {   //we let go of charge
-                stateMachine.ChangeState(StateId.AttackRecovery);
+                stateMachine.ChangeState(PlayerState.AttackRecovery);
             }
             else
             {   //still charging
@@ -171,14 +177,14 @@ public class PocketPlayerController : MonoBehaviour
         {
             if (i > hitboxActivationFrames)
                 ToggleHitbox(hitBox, false);
-            if (isCurrentCharacterState(StateId.AttackRecovery))
+            if (isPlayerStateActive(PlayerState.AttackRecovery))
                 yield return new WaitForEndOfFrame();
         }
 
         ToggleHitbox(hitBox, false);
 
-        if (isCurrentCharacterState(StateId.AttackRecovery))
-            stateMachine.ChangeState(StateId.Idle, forceTransition: true);
+        if (isPlayerStateActive(PlayerState.AttackRecovery))
+            stateMachine.ChangeState(PlayerState.Idle, forceTransition: true);
     }
 
     private void LateUpdate()
@@ -196,19 +202,19 @@ public class PocketPlayerController : MonoBehaviour
             moveVector = (new Vector3(horiz, 0f, vert).normalized) * masterLogic.playerSpeed;
 
             //only want to be moving during these scenes   
-            if (masterLogic.isCurrentSceneState(SceneStateId.Battle) || masterLogic.isCurrentSceneState(SceneStateId.Results))
+            if (masterLogic.isGameStateActive(GameStateId.Battle) || masterLogic.isGameStateActive(GameStateId.Results))
             {
                 if (horiz != 0f || vert != 0f)
-                    stateMachine.ChangeState(StateId.Run);
-                else if (!isCurrentCharacterState(StateId.Dead))
-                    stateMachine.ChangeState(StateId.Idle);
+                    stateMachine.ChangeState(PlayerState.Run);
+                else if (!isPlayerStateActive(PlayerState.Dead))
+                    stateMachine.ChangeState(PlayerState.Idle);
 
                 //allow movement via joystick if we are running, or if we are in hitstun (when AllowMovementDuringHitstun=true)
-                if (isCurrentCharacterState(StateId.Run) || (masterLogic.AllowMovementDuringHitstun && isCurrentCharacterState(StateId.Hitstun)))
+                if (isPlayerStateActive(PlayerState.Run) || (masterLogic.AllowMovementDuringHitstun && isPlayerStateActive(PlayerState.Hitstun)))
                 {
-                    if (isCurrentCharacterState(StateId.Hitstun))
+                    if (isPlayerStateActive(PlayerState.Hitstun))
                         moveVector *= masterLogic.MovementReductionDuringHitstun;
-                    else if (isCurrentCharacterState(StateId.Run))
+                    else if (isPlayerStateActive(PlayerState.Run))
                         transform.LookAt(transform.position + moveVector);
 
                     transform.Translate(moveVector, Space.World);
@@ -224,15 +230,15 @@ public class PocketPlayerController : MonoBehaviour
             }
 
             //start attack
-            if (ButtonList_OnKeyDown.Contains(Button.X) && (masterLogic.isCurrentSceneState(SceneStateId.Battle) || masterLogic.isCurrentSceneState(SceneStateId.Results)))
-                stateMachine.ChangeState(StateId.Charge);
+            if (ButtonList_OnKeyDown.Contains(Button.X) && (masterLogic.isGameStateActive(GameStateId.Battle) || masterLogic.isGameStateActive(GameStateId.Results)))
+                stateMachine.ChangeState(PlayerState.Charge);
             //skip the countdown
             if (ButtonList_OnKeyDown.Contains(Button.Start))
-                masterLogic.stateMachine.ChangeState(SceneStateId.Battle);
+                gameStateMachine.ChangeState(GameStateId.Battle);
             //view debug info
             if (ButtonList_OnKeyDown.Contains(Button.Select))
                 masterLogic.viewDebug = !masterLogic.viewDebug;
-           
+
             //hold start for x frames to reload the scene
             if (ButtonList_OnKey.Contains(Button.Start))
             {
@@ -258,13 +264,9 @@ public class PocketPlayerController : MonoBehaviour
         return min + ((max - min) * multiple);
     }
 
-    public bool isCurrentCharacterState(StateId state)
+    public bool isPlayerStateActive(PlayerState state)
     {
-        return (StateId)stateMachine.GetCurrentStateEnum() == state;
-    }
-    public StateId getCurrentStateIdEnum()
-    {
-        return (StateId)stateMachine.GetCurrentStateEnum();
+        return (PlayerState)stateMachine.GetCurrentStateEnum() == state;
     }
 }
 

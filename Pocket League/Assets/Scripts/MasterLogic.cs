@@ -117,7 +117,7 @@ public class MasterLogic : MonoBehaviour
     [HideInInspector]
     public bool viewDebug = false;
     [HideInInspector]
-    public SceneMachine stateMachine = new SceneMachine();
+    public GameStateMachine gameStateMachine = new GameStateMachine();
     private int frameCount = 0, victoryPlayer = 1;
     private float nextUpdate = 0.0f, fps = 0.0f, updateRate = 4.0f, wordBoxOffsetX;  // 4 updates per sec.
     private List<Vector3> spawnPositions = new List<Vector3>();
@@ -138,11 +138,11 @@ public class MasterLogic : MonoBehaviour
         SetGoTextProperties(1, "", goText.color);
         spawnPositions.AddRange(new List<Vector3>() { new Vector3(-10f, 0f, 0f), new Vector3(10f, 0f, 0f), new Vector3(0f, -5f, 0f), new Vector3(0f, 5f, 0f) });
         mainCamera = GameObject.Find("Main Camera").GetComponent<Camera>();
-
-        stateMachine.Subscribe(Countdown, SceneStateId.Countdown, true);
-        stateMachine.Subscribe(Battle, SceneStateId.Battle, true);
-        stateMachine.Subscribe(Death, SceneStateId.Death, true);
-        stateMachine.Subscribe(Results, SceneStateId.Results, true);
+       
+        gameStateMachine.Subscribe(Countdown, GameStateId.Countdown, true);
+        gameStateMachine.Subscribe(Battle, GameStateId.Battle, true);
+        gameStateMachine.Subscribe(Death, GameStateId.Death, true);
+        gameStateMachine.Subscribe(Results, GameStateId.Results, true);
 
         for (int i = 1; i < 3; i++)
             CreatePlayer(i);
@@ -176,7 +176,7 @@ public class MasterLogic : MonoBehaviour
 
         foreach (PocketPlayerController _player in players)
         {
-            _player.stateMachine.ChangeState(StateId.Idle, true, true);
+            _player.stateMachine.ChangeState(PlayerState.Idle, true, true);
             _player.StopAllCoroutines();
         }
 
@@ -187,14 +187,14 @@ public class MasterLogic : MonoBehaviour
             player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.percent = 0f;
 
 
-        stateMachine.ChangeState(SceneStateId.Countdown);
+        gameStateMachine.ChangeState(GameStateId.Countdown);
 
         StartCoroutine("CountDown");
     }
 
     private IEnumerator CountDown()
     {
-        stateMachine.ChangeState(SceneStateId.Countdown);
+        gameStateMachine.ChangeState(GameStateId.Countdown);
 
         int framesUntilNextNumber = 75, startingSize = 120;
         float incrementToDecreaseSize = 1.35f, incrementTotal = 0f;
@@ -208,13 +208,13 @@ public class MasterLogic : MonoBehaviour
             {
                 incrementTotal += incrementToDecreaseSize;
                 SetGoTextProperties(startingSize - Mathf.FloorToInt(incrementTotal));
-                if (isCurrentSceneState(SceneStateId.Countdown)) { yield return new WaitForEndOfFrame(); }
+                if (isGameStateActive(GameStateId.Countdown)) { yield return new WaitForEndOfFrame(); }
             }
             incrementTotal = 0f;
         }
 
         //..GO!
-        stateMachine.ChangeState(SceneStateId.Battle, true, true);
+        gameStateMachine.ChangeState(GameStateId.Battle, true, true);
         SetGoTextProperties(140, "GO!", Color.green);
         for (int i = 0; i < framesUntilNextNumber; i++) { yield return new WaitForEndOfFrame(); }
         SetGoTextProperties(0, "", startingColor);
@@ -223,7 +223,7 @@ public class MasterLogic : MonoBehaviour
 
     public void KillPlayer(PocketPlayerController player, GameObject hole)
     {
-        stateMachine.ChangeState(SceneStateId.Death);
+        gameStateMachine.ChangeState(GameStateId.Death);
         StartCoroutine(_KillPlayer(player, hole));
     }
 
@@ -231,7 +231,7 @@ public class MasterLogic : MonoBehaviour
     {
         player.playerDetails.stocks--;
         player.StopAllCoroutines();
-        player.stateMachine.ChangeState(StateId.Dead, forceTransition: true);
+        player.stateMachine.ChangeState(PlayerState.Dead, forceTransition: true);
 
         //fall into the abyss
         for (int i = 0; i < 50; i++)
@@ -250,10 +250,10 @@ public class MasterLogic : MonoBehaviour
 
     public void EndGame(PocketPlayerController player)
     {
-        stateMachine.ChangeState(SceneStateId.Results);
+        gameStateMachine.ChangeState(GameStateId.Results);
 
         victoryPlayer = player.playerDetails.id == 1 ? 2 : 1;
-        player.stateMachine.ChangeState(StateId.Dead);
+        player.stateMachine.ChangeState(PlayerState.Dead);
 
         SetGoTextProperties(50, "Player " + victoryPlayer + " is the winner! Hold [Start] to play again!");
     }
@@ -303,7 +303,7 @@ public class MasterLogic : MonoBehaviour
         {
             foreach (PocketPlayerController player in players)
             {
-                if (!player.isCurrentCharacterState(StateId.Dead))
+                if (!player.isPlayerStateActive(PlayerState.Dead))
                 {
                     wordBoxOffsetX = -1f * (Mathf.Floor(player.playerDetails.percent).ToString() + "%").Length * percentCharacterOffsetX / 2f;
                     Color newColor = ScaleMultiplier(Color.white, greyishRed, player.playerDetails.percent / 100f);
@@ -352,7 +352,7 @@ public class MasterLogic : MonoBehaviour
         string spaces = "                                                           ";
         GUILayout.BeginArea(new Rect(Screen.width / 3.5f, Screen.height / 2f, Screen.width, Screen.height));
         GUILayout.EndArea();
-        if (!isCurrentSceneState(SceneStateId.Results))
+        if (!isGameStateActive(GameStateId.Results))
         {
             GUI.color = new Color(1f, 1f, 1f, .75f);
             string player1stocks = "[", player2stocks = "[";
@@ -372,14 +372,11 @@ public class MasterLogic : MonoBehaviour
 
 
     #region Helpers
-    public bool isCurrentSceneState(SceneStateId state)
+    public bool isGameStateActive(GameStateId state)
     {
-        return stateMachine.GetCurrentStateId() == (int)state;
+        return gameStateMachine.GetCurrentStateId() == (int)state;
     }
-    public SceneStateId getCurrentStateIdEnum()
-    {
-        return (SceneStateId)stateMachine.GetCurrentStateEnum();
-    }
+
     private Color ScaleMultiplier(Color min, Color max, float multiple)
     {
         return min + ((max - min) * multiple);

@@ -15,18 +15,18 @@ public class HurtboxLogic : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!masterLogic.isCurrentSceneState(SceneStateId.Results))
+        if (!masterLogic.isGameStateActive(GameStateId.Results))
         {
-            if (other.tag == "Wall" && pocketController.isCurrentCharacterState(StateId.Hitstun) && masterLogic.isCurrentSceneState(SceneStateId.Battle))
+            if (other.tag == "Wall" && pocketController.isPlayerStateActive(PlayerState.Hitstun) && masterLogic.isGameStateActive(GameStateId.Battle))
                 pocketController.knockBackTrajectory = Vector3.Reflect(pocketController.knockBackTrajectory, other.transform.position.normalized);
-            else if (other.tag == "Hole" && masterLogic.isCurrentSceneState(SceneStateId.Battle))
+            else if (other.tag == "Hole" && masterLogic.isGameStateActive(GameStateId.Battle))
                 masterLogic.KillPlayer(pocketController, other.gameObject);
         }
     }
 
     private void OnTriggerStay(Collider other)
     {
-        if (other.tag == "Wall" && !masterLogic.isCurrentSceneState(SceneStateId.Countdown))
+        if (other.tag == "Wall" && !masterLogic.isGameStateActive(GameStateId.Countdown))
         {
             transform.parent.position = other.ClosestPointOnBounds(transform.parent.position);
             transform.parent.Translate(other.transform.position.normalized * -1f * .5f, Space.World);
