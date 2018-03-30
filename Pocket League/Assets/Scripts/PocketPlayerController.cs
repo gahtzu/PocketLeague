@@ -194,13 +194,26 @@ public class PocketPlayerController : MonoBehaviour
 
         if (playerDetails.id > 0)
         {
+            stateMachine.ChangeState(PlayerState.Idle);
+
             vert = Input.GetAxis("Player" + playerDetails.id + "Vertical");
             horiz = Input.GetAxis("Player" + playerDetails.id + "Horizontal");
 
             //by normalizing the vector, we solve the 'diagonal is faster' problem
-            moveVector = (new Vector3(horiz, 0f, vert).normalized) * masterLogic.playerSpeed;
+            moveVector = new Vector3(horiz, 0f, vert).normalized;
 
-            stateMachine.ChangeState(PlayerState.Idle);
+            //slide along the wall if near
+            RaycastHit[] hits = (Physics.RaycastAll(transform.position, moveVector, .5f));
+            foreach (RaycastHit hit in hits)
+                if (hit.transform.tag == "Wall")
+                {
+                    moveVector = (moveVector - (Vector3.Dot(moveVector, hit.normal)) * hit.normal).normalized;
+                    break;
+                }
+
+            //apply the player speed to our normalized movement vector
+            moveVector *= masterLogic.playerSpeed;
+           
 
             //only want to be moving during these scenes   
             if (!masterLogic.isGameStateActive(GameStateId.Countdown))

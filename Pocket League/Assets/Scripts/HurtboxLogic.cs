@@ -24,12 +24,4 @@ public class HurtboxLogic : MonoBehaviour
         }
     }
 
-    private void OnTriggerStay(Collider other)
-    {
-        if (other.tag == "Wall" && !masterLogic.isGameStateActive(GameStateId.Countdown))
-        {
-            transform.parent.position = other.ClosestPointOnBounds(transform.parent.position);
-            transform.parent.Translate(other.transform.position.normalized * -1f * .5f, Space.World);
-        }
-    }
 }
