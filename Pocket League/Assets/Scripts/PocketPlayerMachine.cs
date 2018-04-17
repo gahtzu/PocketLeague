@@ -16,6 +16,11 @@ public class PocketPlayerMachine : StateMachine
         State tech = CreateState(PlayerState.Tech, LegalTransitions(new List<Enum>() { PlayerState.Idle, PlayerState.Tech, PlayerState.Dead }));
         State dead = CreateState(PlayerState.Dead, LegalTransitions(new List<Enum>() { PlayerState.Actionable }));
         State actionable = CreateState(PlayerState.Actionable, LegalTransitions(new List<Enum>() { PlayerState.Idle }));
+
+
+
+
+
         StateGroup characterGroup = CreateGroup(GroupId.CharacterStates, new List<State> { idle, run, charge, attackRecovery, projectile, hitstun, tech, dead, actionable }, idle);
 
         stateGroups = new List<StateGroup>() { characterGroup };

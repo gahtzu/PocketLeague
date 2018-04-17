@@ -311,8 +311,10 @@ public class MasterLogic : MonoBehaviour
                 if (!player.isPlayerStateActive(PlayerState.Dead))
                 {
                     wordBoxOffsetX = -1f * (Mathf.Floor(player.playerDetails.percent).ToString() + "%").Length * percentCharacterOffsetX / 2f;
+
                     Color newColor = ScaleMultiplier(Color.white, greyishRed, player.playerDetails.percent / 100f);
                     newColor.a = ScaleMultiplier(-.2f, .75f, Vector3.Distance(player.transform.position, player.otherPlayer.transform.position) / 5f);
+
                     percentsAttached.normal.textColor = newColor;
                     GUI.Box(new Rect(mainCamera.WorldToScreenPoint(player.gameObject.transform.position).x - wordBoxOffsetX, Screen.height - mainCamera.WorldToScreenPoint(player.gameObject.transform.position).y - 53, 100f, 100f), Mathf.Floor(player.playerDetails.percent).ToString() + "%", percentsAttached);
                 }

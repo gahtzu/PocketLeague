@@ -41,6 +41,7 @@ public class PocketPlayerController : MonoBehaviour
                   color_hitstun = Color.magenta;
 
     private Vector3 moveVector = new Vector3();
+    private bool hasController = false;
     #endregion
 
     public void InitializePlayer(int playerId)
@@ -62,6 +63,12 @@ public class PocketPlayerController : MonoBehaviour
         stateMachine.Subscribe(Idle, PlayerState.Idle, true);
         stateMachine.Subscribe(Run, PlayerState.Run, true);
         stateMachine.Subscribe(Dead, PlayerState.Dead, true);
+
+        if (Input.GetJoystickNames().Length > 0)
+            hasController = true;
+        foreach (string s in Input.GetJoystickNames())
+            print(s);
+
     }
 
     void Dead()
@@ -112,6 +119,8 @@ public class PocketPlayerController : MonoBehaviour
 
         //values weighted from 0 to 1
         float _chargeMultiple = otherPlayer.GetComponent<PocketPlayerController>().chargeMultiple;
+
+
         float _percentMultiple = playerDetails.percent / 100f;
 
         //add percent from being hit
@@ -126,8 +135,9 @@ public class PocketPlayerController : MonoBehaviour
         //vector B is the direction of the attacker to the victim
         Vector3 attackAngleTrajectory = (otherPlayer.transform.Find("hitbox").position - otherPlayer.transform.position).normalized;
         Vector3 playerAngleTrajectory = (transform.position - otherPlayer.transform.position).normalized;
+
         //couldn't decide which is better, so in-between seems like a good spot for now
-        knockBackTrajectory = ((attackAngleTrajectory + playerAngleTrajectory) * .5f).normalized * velocity;
+        knockBackTrajectory = ((attackAngleTrajectory + playerAngleTrajectory) / 2f).normalized * velocity;
 
         for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
         {
@@ -196,8 +206,20 @@ public class PocketPlayerController : MonoBehaviour
         {
             stateMachine.ChangeState(PlayerState.Idle);
 
-            vert = Input.GetAxis("Player" + playerDetails.id + "Vertical");
-            horiz = Input.GetAxis("Player" + playerDetails.id + "Horizontal");
+            if (hasController)
+            {
+                vert = Input.GetAxis("Player" + playerDetails.id + "Vertical");
+                horiz = Input.GetAxis("Player" + playerDetails.id + "Horizontal");
+            }
+            else if (playerDetails.id == 1)
+            {
+                vert = 0f;
+                horiz = 0f;
+                vert += Input.GetKey(KeyCode.W) ? 1f : 0f;
+                vert += Input.GetKey(KeyCode.S) ? -1f : 0f;
+                horiz += Input.GetKey(KeyCode.A) ? -1f : 0f;
+                horiz += Input.GetKey(KeyCode.D) ? 1f : 0f;
+            }
 
             //by normalizing the vector, we solve the 'diagonal is faster' problem
             moveVector = new Vector3(horiz, 0f, vert).normalized;
@@ -213,13 +235,11 @@ public class PocketPlayerController : MonoBehaviour
 
             //apply the player speed to our normalized movement vector
             moveVector *= masterLogic.playerSpeed;
-           
 
             //only want to be moving during these scenes   
             if (!masterLogic.isGameStateActive(GameStateId.Countdown))
                 if (horiz != 0f || vert != 0f)
                     stateMachine.ChangeState(PlayerState.Run);
-
 
             //allow movement via joystick if we are running, or if we are in hitstun (when AllowMovementDuringHitstun=true)
             if (isPlayerStateActive(PlayerState.Run) || (masterLogic.AllowMovementDuringHitstun && isPlayerStateActive(PlayerState.Hitstun)))
@@ -232,12 +252,36 @@ public class PocketPlayerController : MonoBehaviour
                 transform.Translate(moveVector, Space.World);
             }
 
-            //check all 10 xbox controller buttons
-            for (int i = 0; i < 10; i++)
+            if (hasController)
             {
-                if (Input.GetKeyDown("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKeyDown.Add((Button)i); }
-                if (Input.GetKeyUp("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKeyUp.Add((Button)i); }
-                if (Input.GetKey("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKey.Add((Button)i); }
+                //check all 10 xbox controller buttons
+                for (int i = 0; i < 10; i++)
+                {
+                    if (Input.GetKeyDown("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKeyDown.Add((Button)i); }
+                    if (Input.GetKeyUp("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKeyUp.Add((Button)i); }
+                    if (Input.GetKey("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKey.Add((Button)i); }
+
+                }
+            }
+
+            else if (!hasController && playerDetails.id == 1)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    KeyCode thisKey = new KeyCode();
+                    int buttonNum = 0;
+
+                    switch (i)
+                    {
+                        case 0: thisKey = KeyCode.J; buttonNum = 2; break;
+                        case 1: thisKey = KeyCode.K; buttonNum = 7; break;
+                        case 2: thisKey = KeyCode.L; buttonNum = 6; break;
+                    }
+
+                    if (Input.GetKeyDown(thisKey)) ButtonList_OnKeyDown.Add((Button)buttonNum);
+                    if (Input.GetKeyUp(thisKey)) ButtonList_OnKeyUp.Add((Button)buttonNum);
+                    if (Input.GetKey(thisKey)) ButtonList_OnKey.Add((Button)buttonNum);
+                }
             }
 
             //start attack
