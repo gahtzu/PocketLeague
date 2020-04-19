@@ -202,7 +202,7 @@ public class PocketPlayerController : MonoBehaviour
         moveVector = new Vector3(JoystickPosition.x, 0f, JoystickPosition.y).normalized;
 
         //slide along the wall if near
-        RaycastHit[] hits = (Physics.RaycastAll(transform.position, moveVector, .5f));
+        RaycastHit[] hits = (Physics.RaycastAll(transform.position, moveVector, .65f));
         foreach (RaycastHit hit in hits)
             if (hit.transform.tag == "Wall")
             {
@@ -249,7 +249,7 @@ public class PocketPlayerController : MonoBehaviour
             JoystickPosition.x = Input.GetAxis("Player" + playerDetails.id + "Horizontal");
             JoystickPosition.y = Input.GetAxis("Player" + playerDetails.id + "Vertical");
         }
-        else if (playerDetails.id == 1)
+        else
         {
             JoystickPosition.y = Input.GetKey(KeyCode.W) ? 1f : 0f;
             JoystickPosition.y += Input.GetKey(KeyCode.S) ? -1f : 0f;
@@ -262,7 +262,7 @@ public class PocketPlayerController : MonoBehaviour
             for (int i = 0; i < 10; i++)
                 RegisterControllerInputs("joystick " + playerDetails.id + " button " + i, i);
         }
-        else if (playerDetails.id == 1)
+        else
         {
             RegisterKeyboardInputs(KeyCode.J, 2);
             RegisterKeyboardInputs(KeyCode.K, 7);
