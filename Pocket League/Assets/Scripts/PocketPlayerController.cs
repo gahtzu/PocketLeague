@@ -82,8 +82,7 @@ public class PocketPlayerController : MonoBehaviour
     void Run()
     {
         SetBallColor(color_run, isBlank: true);
-        hitBox.GetComponent<BoxCollider>().enabled = false;
-        hitBox.GetComponent<MeshRenderer>().enabled = false;
+        ToggleHitbox(hitBox, false);
     }
 
     void BeginCharge()
@@ -111,7 +110,7 @@ public class PocketPlayerController : MonoBehaviour
     private IEnumerator getHit()
     {
         //disable opponents hitbox until their next attack
-        otherPlayer.transform.Find("hitbox").GetComponent<BoxCollider>().enabled = false;
+        ToggleHitbox(otherPlayer.transform.Find("hitbox").gameObject, isEnabled: false, alsoToggleVisual: false);
 
         //values weighted from 0 to 1
         float _chargeMultiple = otherPlayer.GetComponent<PocketPlayerController>().chargeMultiple;
@@ -130,9 +129,9 @@ public class PocketPlayerController : MonoBehaviour
         //relative angle between players
         Vector3 playerAngleTrajectory = (transform.position - otherPlayer.transform.position).normalized;
 
-        //knockBackTrajectory = playerAngleTrajectory.normalized * velocity;
         knockBackTrajectory = attackAngleTrajectory.normalized * velocity;
         //knockBackTrajectory = ((attackAngleTrajectory + playerAngleTrajectory) / 2f).normalized * velocity;
+        //knockBackTrajectory = playerAngleTrajectory.normalized * velocity;
 
         for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
         {
@@ -190,8 +189,6 @@ public class PocketPlayerController : MonoBehaviour
         if (isPlayerStateActive(PlayerState.AttackRecovery))
             stateMachine.ChangeState(PlayerState.Actionable);
     }
-
-
 
     private void LateUpdate()
     {
@@ -295,25 +292,29 @@ public class PocketPlayerController : MonoBehaviour
     {
         return ButtonList_OnKeyUp.Contains(button);
     }
+
     public bool ButtonPressed(Button button)
     {
         return ButtonList_OnKeyDown.Contains(button);
     }
+
     public bool ButtonHeld(Button button)
     {
         return ButtonList_OnKey.Contains(button);
     }
 
-    private void ToggleHitbox(GameObject hitbox, bool isEnabled)
+    private void ToggleHitbox(GameObject hitbox, bool isEnabled, bool alsoToggleVisual = true)
     {
         hitbox.GetComponent<BoxCollider>().enabled = isEnabled;
-        hitbox.GetComponent<MeshRenderer>().enabled = isEnabled;
+        if (alsoToggleVisual)
+            hitbox.GetComponent<MeshRenderer>().enabled = isEnabled;
     }
 
     private float ScaleMultiplier(float min, float max, float multiple)
     {
         return min + ((max - min) * multiple);
     }
+
     private Vector3 ScaleMultiplier(Vector3 min, Vector3 max, float multiple)
     {
         return min + ((max - min) * multiple);

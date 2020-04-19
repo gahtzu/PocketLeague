@@ -23,5 +23,4 @@ public class HurtboxLogic : MonoBehaviour
                 masterLogic.KillPlayer(pocketController, other.gameObject);
         }
     }
-
 }
