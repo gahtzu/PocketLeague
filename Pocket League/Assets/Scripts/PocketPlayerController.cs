@@ -50,8 +50,9 @@ public class PocketPlayerController : MonoBehaviour
         playerDetails = new PlayerDetails(playerId);
         masterLogic = GameObject.FindObjectOfType<MasterLogic>();
         gameStateMachine = masterLogic.gameStateMachine;
-        model = transform.Find("PlayerModel").gameObject;
 
+        model = transform.Find("PlayerModel"+playerId).gameObject;
+        model.SetActive(true);
         SetBallColor(color_idle, isBlank: true);
 
         hitBox = transform.Find("hitbox").gameObject;
@@ -87,7 +88,7 @@ public class PocketPlayerController : MonoBehaviour
 
     void BeginCharge()
     {
-        SetBallColor(color_charge);
+        SetBallColor(color_charge, isBlank: true);
         StopCoroutine("chargeAttack");
         StartCoroutine("chargeAttack");
     }
@@ -145,6 +146,9 @@ public class PocketPlayerController : MonoBehaviour
         chargeCounter = 0;
         while (isPlayerStateActive(PlayerState.Charge))
         {
+            float weight = (float)chargeCounter / (float)masterLogic.maxChargeFrames;
+            SetBallColor(new Color(weight, 0f, 0f) * 1.5f, false, weight * 1.5f);
+
             if (chargeCounter > masterLogic.maxChargeFrames)
             {   //held for maximum charge
                 chargeCounter = masterLogic.maxChargeFrames;

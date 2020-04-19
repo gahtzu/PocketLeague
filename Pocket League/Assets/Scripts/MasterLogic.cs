@@ -9,7 +9,7 @@ using UnityEngine.UI;
 public class MasterLogic : MonoBehaviour
 {
     #region Inspector Properties
-    [Header("Global Variables (Hover to see more details)")]
+    [Header("Speed/Hitstun/Knockback")]
     [Tooltip("Speed of the player... duh")]
     [SerializeField]
     public float playerSpeed;
@@ -31,6 +31,10 @@ public class MasterLogic : MonoBehaviour
     [Tooltip("How much EXTRA velocity is added when attacked at 100%")]
     [SerializeField]
     public float maxKnockbackVelocityAdditionFromPercent;
+    [Tooltip("When applying DI to the knockback angle, how much should it be considered?\n1 = you can have a 45 degree influence.\n.5 = you can have half of 45 degree influence, etc.")]
+    [SerializeField]
+    public float DirectionalInfluenceMultiplier;
+    [Header("Hitbox/Attack")]
     [Tooltip("How big is your hitbox when attacking (NON-CHARGED)")]
     [SerializeField]
     public Vector3 smallHitboxScale;
@@ -67,6 +71,7 @@ public class MasterLogic : MonoBehaviour
     [Tooltip("How much percent do we add to the opponent when attacking them? (FULLY-CHARGED)")]
     [SerializeField]
     public float maxPercentDealt;
+    [Header("Misc")]
     [Tooltip("Number of stocks that a player starts with.")]
     [SerializeField]
     public int stockCount;
@@ -76,9 +81,7 @@ public class MasterLogic : MonoBehaviour
     [Tooltip("How many pixels does the percentages string offset from the center of the player?")]
     [SerializeField]
     public float percentCharacterOffsetX;
-    [Tooltip("When applying DI to the knockback angle, how much should it be considered?\n1 = you can have a 45 degree influence.\n.5 = you can have half of 45 degree influence, etc.")]
-    [SerializeField]
-    public float DirectionalInfluenceMultiplier;
+
     [Header("Prefabs")]
     public GameObject playerObj;
     #endregion
@@ -137,9 +140,11 @@ public class MasterLogic : MonoBehaviour
     {
         GameObject newPlayer = GameObject.Instantiate(playerObj, spawnPositions[id - 1], Quaternion.identity) as GameObject;
         newPlayer.name = "Player " + id;
+
         PocketPlayerController newController = newPlayer.GetComponent<PocketPlayerController>();
         newController.InitializePlayer(id);
         newController.playerDetails.stocks = stockCount;
+
         players.Add(newController);
     }
 
