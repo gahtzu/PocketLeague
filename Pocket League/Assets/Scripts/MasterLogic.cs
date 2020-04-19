@@ -139,7 +139,7 @@ public class MasterLogic : MonoBehaviour
     {
         goText = GameObject.Find("GoText").GetComponent<Text>();
         SetGoTextProperties(1, "", goText.color);
-        spawnPositions.AddRange(new List<Vector3>() { new Vector3(-10f, 0f, 0f), new Vector3(10f, 0f, 0f), new Vector3(0f, -5f, 0f), new Vector3(0f, 5f, 0f) });
+        spawnPositions.AddRange(new List<Vector3>() { new Vector3(-10f, .5f, 0f), new Vector3(10f, .5f, 0f)});
         mainCamera = GameObject.Find("Main Camera").GetComponent<Camera>();
 
         gameStateMachine.Subscribe(Countdown, GameStateId.Countdown, true);

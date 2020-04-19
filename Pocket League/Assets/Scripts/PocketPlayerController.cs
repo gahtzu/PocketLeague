@@ -34,11 +34,11 @@ public class PocketPlayerController : MonoBehaviour
     [HideInInspector]
     public GameObject hitBox, model;
 
-    private Color color_idle = Color.blue,
-                  color_run = Color.green,
+    private Color color_idle = Color.white,
+                  color_run = Color.white,
                   color_charge = Color.yellow,
                   color_attack = Color.red,
-                  color_hitstun = Color.magenta;
+                  color_hitstun = Color.white;
 
     private Vector3 moveVector = new Vector3();
     private bool hasController = false;
@@ -51,8 +51,8 @@ public class PocketPlayerController : MonoBehaviour
         gameStateMachine = masterLogic.gameStateMachine;
 
         model = transform.Find("PlayerModel").gameObject;
-        model.GetComponent<Renderer>().material.color = color_idle;
 
+        SetBallColor(color_idle, isBlank: true);
         hitBox = transform.Find("hitbox").gameObject;
         hitBox.transform.localScale = masterLogic.smallHitboxScale;
         hitBox.transform.localPosition += new Vector3(0f, 0f, masterLogic.smallHitboxOffset);
@@ -70,40 +70,40 @@ public class PocketPlayerController : MonoBehaviour
 
     void Dead()
     {
-        model.GetComponent<Renderer>().material.color = new Color(.25f, .25f, .25f, 1f);
+        SetBallColor(new Color(.25f, .25f, .25f, 1f));
     }
 
     void Idle()
     {
-        model.GetComponent<Renderer>().material.color = color_idle;
+        SetBallColor(color_idle, isBlank: true);
         hitBox.GetComponent<BoxCollider>().enabled = false;
         hitBox.GetComponent<MeshRenderer>().enabled = false;
     }
 
     void Run()
     {
-        model.GetComponent<Renderer>().material.color = color_run;
+        SetBallColor(color_run, isBlank:true);
         hitBox.GetComponent<BoxCollider>().enabled = false;
         hitBox.GetComponent<MeshRenderer>().enabled = false;
     }
 
     void BeginCharge()
     {
-        model.GetComponent<Renderer>().material.color = color_charge;
+        SetBallColor(color_charge);
         StopCoroutine("chargeAttack");
         StartCoroutine("chargeAttack");
     }
 
     void AttackRecovery()
     {
-        model.GetComponent<Renderer>().material.color = color_attack;
+        SetBallColor(color_attack);
         StopCoroutine("attackRecovery");
         StartCoroutine("attackRecovery");
     }
 
     void GetHit()
     {
-        model.GetComponent<Renderer>().material.color = color_hitstun;
+        SetBallColor(color_hitstun);
         StopCoroutine("chargeAttack");
         StopCoroutine("getHit");
         StartCoroutine("getHit");
@@ -128,17 +128,26 @@ public class PocketPlayerController : MonoBehaviour
         float velocity = ScaleMultiplier(masterLogic.minKnockbackVelocity, masterLogic.maxKnockbackVelocity, _chargeMultiple);
         velocity += ScaleMultiplier(masterLogic.minKnockbackVelocityAdditionFromPercent, masterLogic.maxKnockbackVelocityAdditionFromPercent, _percentMultiple);
 
-        //vector A is the direction the player is facing 
-        //vector B is the direction of the attacker to the victim
+        //direction the player is attacking:
         Vector3 attackAngleTrajectory = (otherPlayer.transform.Find("hitbox").position - otherPlayer.transform.position).normalized;
+        //relative angle between players
         Vector3 playerAngleTrajectory = (transform.position - otherPlayer.transform.position).normalized;
 
-        //couldn't decide which is better, so in-between seems like a good spot for now
-        knockBackTrajectory = ((attackAngleTrajectory + playerAngleTrajectory) / 2f).normalized * velocity;
+        //OPTION 1: attack sends opponent at the current angle between players
+        //knockBackTrajectory = playerAngleTrajectory.normalized * velocity;
+
+        //OPTION 2: knockback direction based on the midpoint of attack angle and player angle
+        //knockBackTrajectory = ((attackAngleTrajectory + playerAngleTrajectory) / 2f).normalized * velocity;
+
+        //OPTION 3: attack sends opponent at the angle of the attack
+        knockBackTrajectory = attackAngleTrajectory.normalized * velocity;
 
         for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
         {
+            transform.LookAt(transform.position + knockBackTrajectory);
+
             transform.Translate(knockBackTrajectory, Space.World);
+            model.transform.Rotate(new Vector3(7f, 0f, 0f), Space.Self);
             yield return new WaitForEndOfFrame();
         }
 
@@ -238,15 +247,14 @@ public class PocketPlayerController : MonoBehaviour
                 if (horiz != 0f || vert != 0f)
                     stateMachine.ChangeState(PlayerState.Run);
 
-            //allow movement via joystick if we are running, or if we are in hitstun (when AllowMovementDuringHitstun=true)
-            if (isPlayerStateActive(PlayerState.Run) || (masterLogic.AllowMovementDuringHitstun && isPlayerStateActive(PlayerState.Hitstun)))
+            //allow movement via joystick if we are running
+            if (isPlayerStateActive(PlayerState.Run))
             {
-                if (isPlayerStateActive(PlayerState.Hitstun))
-                    moveVector *= masterLogic.MovementReductionDuringHitstun;
-                else if (isPlayerStateActive(PlayerState.Run))
+                if (isPlayerStateActive(PlayerState.Run))
                     transform.LookAt(transform.position + moveVector);
 
                 transform.Translate(moveVector, Space.World);
+                model.transform.Rotate(new Vector3(7f, 0f, 0f), Space.Self);
             }
 
             if (hasController)
@@ -319,6 +327,17 @@ public class PocketPlayerController : MonoBehaviour
     public bool isPlayerStateActive(PlayerState state)
     {
         return (PlayerState)stateMachine.GetCurrentStateEnum() == state;
+    }
+
+    public void SetBallColor(Color c, bool isBlank = false, float influence = 1f)
+    {
+        if (isBlank)
+            model.GetComponent<Renderer>().material.DisableKeyword("_EMISSION");
+        else
+        {
+            model.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+            model.GetComponent<Renderer>().material.SetColor("_EmissionColor", Color.Lerp(new Color(0f, 0f, 0f, 0f), c, influence));
+        }
     }
 }
 
