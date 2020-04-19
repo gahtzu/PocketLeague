@@ -41,8 +41,8 @@ public class StateGroup
         {
             if (!currentState.CanTransition(state.id))
             {
-                Debug.LogWarning("Tried to call an illegal transition!");
-                Debug.LogWarning("Current state ' " + currentState.name + " ' cannot transition into state ' " + state.name + " '");
+                //Debug.LogWarning("Tried to call an illegal transition!");
+                //Debug.LogWarning("Current state ' " + currentState.name + " ' cannot transition into state ' " + state.name + " '");
                 return;
             }
         }
