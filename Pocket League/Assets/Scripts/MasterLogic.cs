@@ -139,7 +139,7 @@ public class MasterLogic : MonoBehaviour
     {
         goText = GameObject.Find("GoText").GetComponent<Text>();
         SetGoTextProperties(1, "", goText.color);
-        spawnPositions.AddRange(new List<Vector3>() { new Vector3(-10f, .5f, 0f), new Vector3(10f, .5f, 0f)});
+        spawnPositions.AddRange(new List<Vector3>() { new Vector3(-10f, .5f, 0f), new Vector3(10f, .5f, 0f) });
         mainCamera = GameObject.Find("Main Camera").GetComponent<Camera>();
 
         gameStateMachine.Subscribe(Countdown, GameStateId.Countdown, true);
@@ -170,7 +170,6 @@ public class MasterLogic : MonoBehaviour
         newController.playerDetails.stocks = stockCount;
         players.Add(newController);
     }
-
 
     public void GetReadyForCountDown(PocketPlayerController player)
     {
@@ -255,11 +254,9 @@ public class MasterLogic : MonoBehaviour
     public void EndGame(PocketPlayerController player)
     {
         StopCoroutine("CountDown");
-
         gameStateMachine.ChangeState(GameStateId.Results);
-        victoryPlayer = player.playerDetails.id == 1 ? 2 : 1;
         player.stateMachine.ChangeState(PlayerState.Dead);
-
+        victoryPlayer = player.playerDetails.id == 1 ? 2 : 1;
         SetGoTextProperties(50, "Player " + victoryPlayer + " is the winner! Hold [Start] to play again!", Color.cyan);
     }
 

@@ -8,15 +8,15 @@ public class PocketPlayerController : MonoBehaviour
 {
 
     #region Variables
-
+    private GameStateMachine gameStateMachine;
     [HideInInspector]
     public PocketPlayerMachine stateMachine = new PocketPlayerMachine();
-    private GameStateMachine gameStateMachine;
-
     [HideInInspector]
     public MasterLogic masterLogic;
     [HideInInspector]
-    public float chargeMultiple = 0f, vert = 0f, horiz = 0f;
+    public float chargeMultiple = 0f;
+    [HideInInspector]
+    public Vector2 JoystickPosition = new Vector2(0f, 0f);
     [HideInInspector]
     public GameObject otherPlayer;
     [HideInInspector]
@@ -37,8 +37,9 @@ public class PocketPlayerController : MonoBehaviour
     private Color color_idle = Color.white,
                   color_run = Color.white,
                   color_charge = Color.yellow,
-                  color_attack = Color.red,
-                  color_hitstun = Color.white;
+                  color_attack = Color.yellow,
+                  color_hitstun = Color.magenta,
+                  color_dead = new Color(.25f, .25f, .25f, 1f);
 
     private Vector3 moveVector = new Vector3();
     private bool hasController = false;
@@ -49,10 +50,10 @@ public class PocketPlayerController : MonoBehaviour
         playerDetails = new PlayerDetails(playerId);
         masterLogic = GameObject.FindObjectOfType<MasterLogic>();
         gameStateMachine = masterLogic.gameStateMachine;
-
         model = transform.Find("PlayerModel").gameObject;
 
         SetBallColor(color_idle, isBlank: true);
+
         hitBox = transform.Find("hitbox").gameObject;
         hitBox.transform.localScale = masterLogic.smallHitboxScale;
         hitBox.transform.localPosition += new Vector3(0f, 0f, masterLogic.smallHitboxOffset);
@@ -65,24 +66,22 @@ public class PocketPlayerController : MonoBehaviour
         stateMachine.Subscribe(Dead, PlayerState.Dead, true);
 
         hasController = Input.GetJoystickNames().Length >= playerId;
-
     }
 
     void Dead()
     {
-        SetBallColor(new Color(.25f, .25f, .25f, 1f));
+        SetBallColor(color_dead);
     }
 
     void Idle()
     {
         SetBallColor(color_idle, isBlank: true);
-        hitBox.GetComponent<BoxCollider>().enabled = false;
-        hitBox.GetComponent<MeshRenderer>().enabled = false;
+        ToggleHitbox(hitBox, false);
     }
 
     void Run()
     {
-        SetBallColor(color_run, isBlank:true);
+        SetBallColor(color_run, isBlank: true);
         hitBox.GetComponent<BoxCollider>().enabled = false;
         hitBox.GetComponent<MeshRenderer>().enabled = false;
     }
@@ -96,7 +95,7 @@ public class PocketPlayerController : MonoBehaviour
 
     void AttackRecovery()
     {
-        SetBallColor(color_attack);
+        SetBallColor(color_attack, isBlank: true);
         StopCoroutine("attackRecovery");
         StartCoroutine("attackRecovery");
     }
@@ -116,8 +115,6 @@ public class PocketPlayerController : MonoBehaviour
 
         //values weighted from 0 to 1
         float _chargeMultiple = otherPlayer.GetComponent<PocketPlayerController>().chargeMultiple;
-
-
         float _percentMultiple = playerDetails.percent / 100f;
 
         //add percent from being hit
@@ -133,21 +130,13 @@ public class PocketPlayerController : MonoBehaviour
         //relative angle between players
         Vector3 playerAngleTrajectory = (transform.position - otherPlayer.transform.position).normalized;
 
-        //OPTION 1: attack sends opponent at the current angle between players
         //knockBackTrajectory = playerAngleTrajectory.normalized * velocity;
-
-        //OPTION 2: knockback direction based on the midpoint of attack angle and player angle
-        //knockBackTrajectory = ((attackAngleTrajectory + playerAngleTrajectory) / 2f).normalized * velocity;
-
-        //OPTION 3: attack sends opponent at the angle of the attack
         knockBackTrajectory = attackAngleTrajectory.normalized * velocity;
+        //knockBackTrajectory = ((attackAngleTrajectory + playerAngleTrajectory) / 2f).normalized * velocity;
 
         for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
         {
-            transform.LookAt(transform.position + knockBackTrajectory);
-
-            transform.Translate(knockBackTrajectory, Space.World);
-            model.transform.Rotate(new Vector3(7f, 0f, 0f), Space.Self);
+            MovePlayer(knockBackTrajectory);
             yield return new WaitForEndOfFrame();
         }
 
@@ -202,111 +191,117 @@ public class PocketPlayerController : MonoBehaviour
             stateMachine.ChangeState(PlayerState.Actionable);
     }
 
+
+
     private void LateUpdate()
+    {
+        stateMachine.ChangeState(PlayerState.Idle);
+        GetInputs();
+
+        //by normalizing the vector, we solve the 'diagonal is faster' problem
+        moveVector = new Vector3(JoystickPosition.x, 0f, JoystickPosition.y).normalized;
+
+        //slide along the wall if near
+        RaycastHit[] hits = (Physics.RaycastAll(transform.position, moveVector, .5f));
+        foreach (RaycastHit hit in hits)
+            if (hit.transform.tag == "Wall")
+            {
+                moveVector = (moveVector - (Vector3.Dot(moveVector, hit.normal)) * hit.normal).normalized;
+                break;
+            }
+
+        //apply the player speed to our normalized movement vector
+        moveVector *= masterLogic.playerSpeed;
+
+        //only want to be moving during these scenes   
+        if (!masterLogic.isGameStateActive(GameStateId.Countdown))
+            if (JoystickPosition != new Vector2(0f, 0f))
+                stateMachine.ChangeState(PlayerState.Run);
+
+        //allow movement via joystick if we are running
+        if (isPlayerStateActive(PlayerState.Run))
+            MovePlayer(moveVector);
+
+        if (ButtonPressed(Button.X) && (masterLogic.isGameStateActive(GameStateId.Battle)))
+            stateMachine.ChangeState(PlayerState.Charge); //start attack
+        if (ButtonPressed(Button.Start))
+            gameStateMachine.ChangeState(GameStateId.Battle); //skip the countdown
+        if (ButtonPressed(Button.Select))
+            masterLogic.viewDebug = !masterLogic.viewDebug; //view debug info
+
+        if (ButtonHeld(Button.Start))
+        {
+            startCounter++; //hold start for 55 frames to reload the scene
+            if (startCounter > 55) { SceneManager.LoadScene(SceneManager.GetActiveScene().name); }
+        }
+        else { startCounter = 0; }
+
+    }
+
+    public void GetInputs()
     {
         ButtonList_OnKey.Clear();
         ButtonList_OnKeyDown.Clear();
         ButtonList_OnKeyUp.Clear();
 
-        if (playerDetails.id > 0)
+        if (hasController)
         {
-            stateMachine.ChangeState(PlayerState.Idle);
-
-            if (hasController)
-            {
-                vert = Input.GetAxis("Player" + playerDetails.id + "Vertical");
-                horiz = Input.GetAxis("Player" + playerDetails.id + "Horizontal");
-            }
-            else if (playerDetails.id == 1)
-            {
-                vert = 0f;
-                horiz = 0f;
-                vert += Input.GetKey(KeyCode.W) ? 1f : 0f;
-                vert += Input.GetKey(KeyCode.S) ? -1f : 0f;
-                horiz += Input.GetKey(KeyCode.A) ? -1f : 0f;
-                horiz += Input.GetKey(KeyCode.D) ? 1f : 0f;
-            }
-
-            //by normalizing the vector, we solve the 'diagonal is faster' problem
-            moveVector = new Vector3(horiz, 0f, vert).normalized;
-
-            //slide along the wall if near
-            RaycastHit[] hits = (Physics.RaycastAll(transform.position, moveVector, .5f));
-            foreach (RaycastHit hit in hits)
-                if (hit.transform.tag == "Wall")
-                {
-                    moveVector = (moveVector - (Vector3.Dot(moveVector, hit.normal)) * hit.normal).normalized;
-                    break;
-                }
-
-            //apply the player speed to our normalized movement vector
-            moveVector *= masterLogic.playerSpeed;
-
-            //only want to be moving during these scenes   
-            if (!masterLogic.isGameStateActive(GameStateId.Countdown))
-                if (horiz != 0f || vert != 0f)
-                    stateMachine.ChangeState(PlayerState.Run);
-
-            //allow movement via joystick if we are running
-            if (isPlayerStateActive(PlayerState.Run))
-            {
-                if (isPlayerStateActive(PlayerState.Run))
-                    transform.LookAt(transform.position + moveVector);
-
-                transform.Translate(moveVector, Space.World);
-                model.transform.Rotate(new Vector3(7f, 0f, 0f), Space.Self);
-            }
-
-            if (hasController)
-            {
-                //check all 10 xbox controller buttons
-                for (int i = 0; i < 10; i++)
-                {
-                    if (Input.GetKeyDown("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKeyDown.Add((Button)i); }
-                    if (Input.GetKeyUp("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKeyUp.Add((Button)i); }
-                    if (Input.GetKey("joystick " + playerDetails.id + " button " + i)) { ButtonList_OnKey.Add((Button)i); }
-
-                }
-            }
-
-            else if (!hasController && playerDetails.id == 1)
-            {
-                for (int i = 0; i < 3; i++)
-                {
-                    KeyCode thisKey = new KeyCode();
-                    int buttonNum = 0;
-
-                    switch (i)
-                    {
-                        case 0: thisKey = KeyCode.J; buttonNum = 2; break;
-                        case 1: thisKey = KeyCode.K; buttonNum = 7; break;
-                        case 2: thisKey = KeyCode.L; buttonNum = 6; break;
-                    }
-
-                    if (Input.GetKeyDown(thisKey)) ButtonList_OnKeyDown.Add((Button)buttonNum);
-                    if (Input.GetKeyUp(thisKey)) ButtonList_OnKeyUp.Add((Button)buttonNum);
-                    if (Input.GetKey(thisKey)) ButtonList_OnKey.Add((Button)buttonNum);
-                }
-            }
-
-            //start attack
-            if (ButtonList_OnKeyDown.Contains(Button.X) && (masterLogic.isGameStateActive(GameStateId.Battle) || masterLogic.isGameStateActive(GameStateId.Results)))
-                stateMachine.ChangeState(PlayerState.Charge);
-            //skip the countdown
-            if (ButtonList_OnKeyDown.Contains(Button.Start))
-                gameStateMachine.ChangeState(GameStateId.Battle);
-            //view debug info
-            if (ButtonList_OnKeyDown.Contains(Button.Select))
-                masterLogic.viewDebug = !masterLogic.viewDebug;
-
-            //hold start for x frames to reload the scene
-            if (ButtonList_OnKey.Contains(Button.Start))
-            {
-                startCounter++;
-                if (startCounter > 55) { SceneManager.LoadScene(SceneManager.GetActiveScene().name); }
-            }
-            else { startCounter = 0; }
+            JoystickPosition.x = Input.GetAxis("Player" + playerDetails.id + "Horizontal");
+            JoystickPosition.y = Input.GetAxis("Player" + playerDetails.id + "Vertical");
         }
+        else if (playerDetails.id == 1)
+        {
+            JoystickPosition.y = Input.GetKey(KeyCode.W) ? 1f : 0f;
+            JoystickPosition.y += Input.GetKey(KeyCode.S) ? -1f : 0f;
+            JoystickPosition.x = Input.GetKey(KeyCode.A) ? -1f : 0f;
+            JoystickPosition.x += Input.GetKey(KeyCode.D) ? 1f : 0f;
+        }
+
+        if (hasController)
+        {
+            for (int i = 0; i < 10; i++)
+                RegisterControllerInputs("joystick " + playerDetails.id + " button " + i, i);
+        }
+        else if (playerDetails.id == 1)
+        {
+            RegisterKeyboardInputs(KeyCode.J, 2);
+            RegisterKeyboardInputs(KeyCode.K, 7);
+            RegisterKeyboardInputs(KeyCode.L, 6);
+        }
+    }
+
+    public void MovePlayer(Vector3 movementVector)
+    {
+        transform.LookAt(transform.position + movementVector);
+        transform.Translate(movementVector, Space.World);
+        model.transform.Rotate(new Vector3(7f, 0f, 0f), Space.Self);
+    }
+
+    public void RegisterKeyboardInputs(KeyCode keycode, int buttonNumber)
+    {
+        if (Input.GetKeyDown(keycode)) ButtonList_OnKeyDown.Add((Button)buttonNumber);
+        if (Input.GetKeyUp(keycode)) ButtonList_OnKeyUp.Add((Button)buttonNumber);
+        if (Input.GetKey(keycode)) ButtonList_OnKey.Add((Button)buttonNumber);
+    }
+
+    public void RegisterControllerInputs(string keycode, int buttonNumber)
+    {
+        if (Input.GetKeyDown(keycode)) ButtonList_OnKeyDown.Add((Button)buttonNumber);
+        if (Input.GetKeyUp(keycode)) ButtonList_OnKeyUp.Add((Button)buttonNumber);
+        if (Input.GetKey(keycode)) ButtonList_OnKey.Add((Button)buttonNumber);
+    }
+
+    public bool ButtonReleased(Button button)
+    {
+        return ButtonList_OnKeyUp.Contains(button);
+    }
+    public bool ButtonPressed(Button button)
+    {
+        return ButtonList_OnKeyDown.Contains(button);
+    }
+    public bool ButtonHeld(Button button)
+    {
+        return ButtonList_OnKey.Contains(button);
     }
 
     private void ToggleHitbox(GameObject hitbox, bool isEnabled)
