@@ -351,7 +351,11 @@ public class MasterLogic : MonoBehaviour
 
                 GUILayout.Label(" ");
 
+
             }
+            GUILayout.Label("             CONTROLLERS DETECTED: ", header);
+            foreach (string s in Input.GetJoystickNames())
+                GUILayout.Label("                   -"+s, small);
         }
         string spaces = "                                                           ";
         GUILayout.BeginArea(new Rect(Screen.width / 3.5f, Screen.height / 2f, Screen.width, Screen.height));
