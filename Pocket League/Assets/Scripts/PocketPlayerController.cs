@@ -64,10 +64,7 @@ public class PocketPlayerController : MonoBehaviour
         stateMachine.Subscribe(Run, PlayerState.Run, true);
         stateMachine.Subscribe(Dead, PlayerState.Dead, true);
 
-        if (Input.GetJoystickNames().Length > 0)
-            hasController = true;
-        foreach (string s in Input.GetJoystickNames())
-            print(s);
+        hasController = Input.GetJoystickNames().Length >= playerId;
 
     }
 

@@ -18,9 +18,6 @@ public class PocketPlayerMachine : StateMachine
         State actionable = CreateState(PlayerState.Actionable, LegalTransitions(new List<Enum>() { PlayerState.Idle }));
 
 
-
-
-
         StateGroup characterGroup = CreateGroup(GroupId.CharacterStates, new List<State> { idle, run, charge, attackRecovery, projectile, hitstun, tech, dead, actionable }, idle);
 
         stateGroups = new List<StateGroup>() { characterGroup };
