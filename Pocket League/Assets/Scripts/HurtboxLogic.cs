@@ -13,14 +13,15 @@ public class HurtboxLogic : MonoBehaviour
         pocketController = transform.parent.GetComponent<PocketPlayerController>();
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider collider)
     {
         if (!masterLogic.isGameStateActive(GameStateId.Results))
         {
-            if (other.tag == "Wall" && pocketController.isPlayerStateActive(PlayerState.Hitstun) && masterLogic.isGameStateActive(GameStateId.Battle))
-                pocketController.knockBackTrajectory = Vector3.Reflect(pocketController.knockBackTrajectory, other.transform.position.normalized);
-            else if (other.tag == "Hole" && masterLogic.isGameStateActive(GameStateId.Battle))
-                masterLogic.KillPlayer(pocketController, other.gameObject);
+            if (collider.tag == "Wall")
+                pocketController.ReflectKnockbackTrajectory(collider.transform.position.normalized);
+                
+            else if (collider.tag == "Hole" && masterLogic.isGameStateActive(GameStateId.Battle))
+                masterLogic.KillPlayer(pocketController, collider.gameObject);
         }
     }
 }

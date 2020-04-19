@@ -14,7 +14,7 @@ public class PocketPlayerController : MonoBehaviour
     [HideInInspector]
     public MasterLogic masterLogic;
     [HideInInspector]
-    public float chargeMultiple = 0f;
+    public float chargeMultiple = 0f, knockbackVelocity = 0f;
     [HideInInspector]
     public Vector2 JoystickPosition = new Vector2(0f, 0f);
     [HideInInspector]
@@ -24,7 +24,7 @@ public class PocketPlayerController : MonoBehaviour
     [HideInInspector]
     public PlayerDetails playerDetails = new PlayerDetails(-1);
     [HideInInspector]
-    public Vector3 knockBackTrajectory = new Vector3(0f, 0f, 0f);
+    public Vector3 knockbackTrajectory = new Vector3(0f, 0f, 0f);
     private int startCounter = 0;
 
     private List<Button> ButtonList_OnKeyDown = new List<Button>();
@@ -121,21 +121,19 @@ public class PocketPlayerController : MonoBehaviour
 
         //hitstun length, and velocity (based on percent and charge)
         float hitstunLength = ScaleMultiplier(masterLogic.minHitstunLength, masterLogic.maxHitstunLength, _percentMultiple);
-        float velocity = ScaleMultiplier(masterLogic.minKnockbackVelocity, masterLogic.maxKnockbackVelocity, _chargeMultiple);
-        velocity += ScaleMultiplier(masterLogic.minKnockbackVelocityAdditionFromPercent, masterLogic.maxKnockbackVelocityAdditionFromPercent, _percentMultiple);
+        knockbackVelocity = ScaleMultiplier(masterLogic.minKnockbackVelocity, masterLogic.maxKnockbackVelocity, _chargeMultiple);
+        knockbackVelocity += ScaleMultiplier(masterLogic.minKnockbackVelocityAdditionFromPercent, masterLogic.maxKnockbackVelocityAdditionFromPercent, _percentMultiple);
 
         //direction the player is attacking:
         Vector3 attackAngleTrajectory = (otherPlayer.transform.Find("hitbox").position - otherPlayer.transform.position).normalized;
         //relative angle between players
         Vector3 playerAngleTrajectory = (transform.position - otherPlayer.transform.position).normalized;
 
-        knockBackTrajectory = attackAngleTrajectory.normalized * velocity;
-        //knockBackTrajectory = ((attackAngleTrajectory + playerAngleTrajectory) / 2f).normalized * velocity;
-        //knockBackTrajectory = playerAngleTrajectory.normalized * velocity;
+        knockbackTrajectory = (attackAngleTrajectory.normalized * knockbackVelocity).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
 
         for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
         {
-            MovePlayer(knockBackTrajectory);
+            MovePlayer(knockbackTrajectory);
             yield return new WaitForEndOfFrame();
         }
 
@@ -274,6 +272,12 @@ public class PocketPlayerController : MonoBehaviour
         model.transform.Rotate(new Vector3(7f, 0f, 0f), Space.Self);
     }
 
+    public void ReflectKnockbackTrajectory(Vector3 wallColliderNormal)
+    {
+        if (isPlayerStateActive(PlayerState.Hitstun) && masterLogic.isGameStateActive(GameStateId.Battle))
+            knockbackTrajectory = Vector3.Reflect(knockbackTrajectory, wallColliderNormal).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
+    }
+
     public void RegisterKeyboardInputs(KeyCode keycode, int buttonNumber)
     {
         if (Input.GetKeyDown(keycode)) ButtonList_OnKeyDown.Add((Button)buttonNumber);
@@ -346,5 +350,16 @@ public class PlayerDetails
     {
         id = _id;
         percent = 0f;
+    }
+}
+
+public static class VectorExtensions
+{
+    public static Vector3 ApplyDirectionalInfluence(this Vector3 origTrajectory, Vector2 JoystickPosition, float knockbackVelocity, float DirectionalInfluenceMultiplier)
+    {
+        Vector3 stickPos = new Vector3(JoystickPosition.x, 0f, JoystickPosition.y).normalized * DirectionalInfluenceMultiplier;
+        Vector3 combined = stickPos + origTrajectory.normalized;
+        combined = combined.normalized;
+        return combined * knockbackVelocity;
     }
 }

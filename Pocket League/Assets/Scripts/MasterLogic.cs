@@ -73,42 +73,14 @@ public class MasterLogic : MonoBehaviour
     [Tooltip("Should both players reset their percent after a stock is taken?")]
     [SerializeField]
     public bool ResetPercentOnKill;
-    [Tooltip("Should players be able to influence their direction while in hitstun?")]
-    [SerializeField]
-    public bool AllowMovementDuringHitstun;
-    [Tooltip("(Only applies if 'AllowMovementDuringHitstun' is checked) How much should your movement influence your trajectory while in hitstun? 2 = you can move a lot during hitstun; 1 = regular movement during hitstun; 0 = none")]
-    [SerializeField]
-    public float MovementReductionDuringHitstun;
     [Tooltip("How many pixels does the percentages string offset from the center of the player?")]
     [SerializeField]
-    private float percentCharacterOffsetX;
+    public float percentCharacterOffsetX;
+    [Tooltip("When applying DI to the knockback angle, how much should it be considered?\n1 = you can have a 45 degree influence.\n.5 = you can have half of 45 degree influence, etc.")]
+    [SerializeField]
+    public float DirectionalInfluenceMultiplier;
     [Header("Prefabs")]
     public GameObject playerObj;
-
-    ///////  THESE ARE OLD CONCEPTS. WE PROB WONT USE MOST, BUT I LEAVE IT HERE AS A REMINDER  ///////////////////
-
-    //[SerializeField]
-    //public int techWindowFrames; //before hitting the rail, how many frames early can you input a tech successfully?
-    //[SerializeField]
-    //public int missedTechPunishmentFrames; //how many frames until you can attempt to tech again
-    //[SerializeField]
-    //public int techDurationFrames; //how long invincibility lasts after a tech
-    //[SerializeField]
-    //public float speedWhileChargingMultiplier; //1 = no speed change while charging; 0 = can't move while charging
-    //[SerializeField]
-    //public float directionalInfluenceWeight; //1 = fully change knockback vector; 0 = no effect on knockback vector
-    //[SerializeField]
-    //public float projectileSpeed; //how fast projectiles move
-    //[SerializeField]
-    //public int projectileCooldownFrames; //how long projectile attack recovery takes
-    //[SerializeField]
-    //public int projectileHaltFrames; //how long our position is frozen while shooting a projectile
-    //[SerializeField]
-    //public int projectileStunFrames; //how long opponent is stunned when hit with projectile
-    //[SerializeField]
-    //public bool useSmashCamera; //true = camera is dynamic relative to players; false = camera is still with entire table in view
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
     #endregion
 
     #region Variables
@@ -122,7 +94,7 @@ public class MasterLogic : MonoBehaviour
     private float nextUpdate = 0.0f,
                   fps = 0.0f,
                   wordBoxOffsetX,
-                  updateRate = 4.0f;  // 4 updates per sec.
+                  updateRate = 1f;  // 1 update per sec.
     private List<Vector3> spawnPositions = new List<Vector3>();
     private Camera mainCamera;
     private Text goText;
@@ -355,9 +327,9 @@ public class MasterLogic : MonoBehaviour
             }
             GUILayout.Label("             CONTROLLERS DETECTED: ", header);
             foreach (string s in Input.GetJoystickNames())
-                GUILayout.Label("                   -"+s, small);
+                GUILayout.Label("                   -" + s, small);
         }
-        string spaces = "                                                           ";
+
         GUILayout.BeginArea(new Rect(Screen.width / 3.5f, Screen.height / 2f, Screen.width, Screen.height));
         GUILayout.EndArea();
         if (!isGameStateActive(GameStateId.Results))
@@ -427,4 +399,3 @@ public enum Button
     LStickButton = 8,
     RStickButton = 9
 }
-
