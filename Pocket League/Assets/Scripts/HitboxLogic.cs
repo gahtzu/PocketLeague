@@ -6,10 +6,9 @@ public class HitboxLogic : MonoBehaviour
 {
     private void OnTriggerStay(Collider other)
     {
-        if (other.tag == "Hurtbox" && other.transform.parent != transform.parent)
+        if (other.tag == "Hurtbox" && other.transform.parent != transform.parent.parent)
         {
             other.transform.parent.GetComponent<PocketPlayerController>().stateMachine.ChangeState(PlayerState.Hitstun);
-            transform.parent.GetComponent<PocketPlayerController>().HitOpponent();
         }
     }
 }

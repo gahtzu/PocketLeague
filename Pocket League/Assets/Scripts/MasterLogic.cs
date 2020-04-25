@@ -9,72 +9,13 @@ using UnityEngine.UI;
 public class MasterLogic : MonoBehaviour
 {
     #region Inspector Properties
-    [Header("Speed/Hitstun/Knockback")]
+    [Header("Misc")]
     [Tooltip("Speed of the player... duh")]
     [SerializeField]
     public float playerSpeed;
-    [Tooltip("When attacked at 0%, how many frames should hitstun/knockback last?")]
-    [SerializeField]
-    public int minHitstunLength;
-    [Tooltip("When attacked at 100%, how many frames should hitstun/knockback last?")]
-    [SerializeField]
-    public int maxHitstunLength;
-    [Tooltip("With how much velocity are you knocked back when attacked with a NON-charged attack?")]
-    [SerializeField]
-    public float minKnockbackVelocity;
-    [Tooltip("With how much velocity are you knocked back when attacked with a FULLY-charged attack?")]
-    [SerializeField]
-    public float maxKnockbackVelocity;
-    [Tooltip("How much EXTRA velocity is added when attacked at 0%")]
-    [SerializeField]
-    public float minKnockbackVelocityAdditionFromPercent;
-    [Tooltip("How much EXTRA velocity is added when attacked at 100%")]
-    [SerializeField]
-    public float maxKnockbackVelocityAdditionFromPercent;
     [Tooltip("When applying DI to the knockback angle, how much should it be considered?\n1 = you can have a 45 degree influence.\n.5 = you can have half of 45 degree influence, etc.")]
     [SerializeField]
     public float DirectionalInfluenceMultiplier;
-    [Tooltip("SpeedMultiplierWhileCharging")]
-    [SerializeField]
-    public float speedMultiplierWhileCharging;
-    [Header("Hitbox/Attack")]
-    [Tooltip("How big is your hitbox when attacking (NON-CHARGED)")]
-    [SerializeField]
-    public Vector3 smallHitboxScale;
-    [Tooltip("How far away from the player's center should their hitbox be placed when attacking? (NON-CHARGED)")]
-    [SerializeField]
-    public float smallHitboxOffset;
-    [Tooltip("How big is your hitbox when attacking (FULLY-CHARGED)")]
-    [SerializeField]
-    public Vector3 bigHitboxScale;
-    [Tooltip("How far away from the player's center should their hitbox be placed when attacking? (FULLY-CHARGED)")]
-    [SerializeField]
-    public float bigHitboxOffset;
-    [Tooltip("Our quickest attack will still take this many frames to automatically \"charge\"")]
-    [SerializeField]
-    public int minChargeFrames;
-    [Tooltip("What is the maximum number of frames that an attack can be charged for? (automatically releases attack after)")]
-    [SerializeField]
-    public int maxChargeFrames;
-    [Tooltip("How many frames does of lag do our attacks have? (NON-CHARGED)")]
-    [SerializeField]
-    public float minAttackCooldownFrames;
-    [Tooltip("How many frames does of lag do our attacks have? (FULLY-CHARGED)")]
-    [SerializeField]
-    public float maxAttackCooldownFrames;
-    [Tooltip("How many frames is our hitbox active while we are in attack lag? (NON-CHARGED)")]
-    [SerializeField]
-    public float minAttackHitboxActivationFrames;
-    [Tooltip("How many frames is our hitbox active while we are in attack lag? (FULLY-CHARGED)")]
-    [SerializeField]
-    public float maxAttackHitboxActivationFrames;
-    [Tooltip("How much percent do we add to the opponent when attacking them? (NON-CHARGED)")]
-    [SerializeField]
-    public float minPercentDealt;
-    [Tooltip("How much percent do we add to the opponent when attacking them? (FULLY-CHARGED)")]
-    [SerializeField]
-    public float maxPercentDealt;
-    [Header("Misc")]
     [Tooltip("Number of stocks that a player starts with.")]
     [SerializeField]
     public int stockCount;
