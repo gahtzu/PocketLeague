@@ -135,6 +135,7 @@ public class MasterLogic : MonoBehaviour
     {
         GameObject newPlayer = GameObject.Instantiate(playerObj, spawnPositions[id - 1], Quaternion.identity) as GameObject;
         newPlayer.name = "Player " + id;
+        newPlayer.layer = 8 + id;
 
         PocketPlayerController newController = newPlayer.GetComponent<PocketPlayerController>();
         newController.InitializePlayer(id);

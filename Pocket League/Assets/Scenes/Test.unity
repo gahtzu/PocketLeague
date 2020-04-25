@@ -283,9 +283,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   startupFrames: 0
   teleportDistance: 7
-  framesToTeleport: 12
-  rechargeFrames: 200
-  lagFrames: 8
+  framesToTeleport: 22
+  rechargeFrames: 120
+  lagFrames: 1
   invincibleWhileTeleporting: 0
   modelHiddenWhileTeleporting: 0
 --- !u!1 &483257308
@@ -334,7 +334,7 @@ MonoBehaviour:
   minHitstunLength: 40
   maxHitstunLength: 180
   minKnockbackVelocityAdditionFromPercent: 0.15
-  maxKnockbackVelocityAdditionFromPercent: 0.3
+  maxKnockbackVelocityAdditionFromPercent: 0.23
   hitBoxScale: {x: 0.5, y: 0.5, z: 3}
   startingYRotationOffset: 60
   startingOffset: {x: 0, y: 0, z: 1.5}
@@ -390,16 +390,16 @@ MonoBehaviour:
   minHitstunLength: 40
   maxHitstunLength: 180
   minKnockbackVelocityAdditionFromPercent: 0.12
-  maxKnockbackVelocityAdditionFromPercent: 0.3
+  maxKnockbackVelocityAdditionFromPercent: 0.23
   minKnockbackVelocity: 0
   maxKnockbackVelocity: 0.13
   speedMultiplierWhileCharging: 0
   rotationLockedDuringCharge: 1
-  smallHitboxScale: {x: 3, y: 0.3, z: 3}
+  smallHitboxScale: {x: 2.6, y: 0.3, z: 2.6}
   smallHitboxOffset: 1.1
   bigHitboxScale: {x: 3.9, y: 0.3, z: 4.2}
   bigHitboxOffset: 2
-  minChargeFrames: 18
+  minChargeFrames: 3
   maxChargeFrames: 55
   minAttackCooldownFrames: 18
   maxAttackCooldownFrames: 57
@@ -781,8 +781,8 @@ MonoBehaviour:
   projectile_P1: {fileID: 442410078}
   teleport_btn_P1: 5
   teleport_P1: {fileID: 463940163}
-  swipeAttack_btn_L_P1: 2
-  swipeAttack_btn_R_P1: 1
+  swipeAttack_btn_L_P1: 1
+  swipeAttack_btn_R_P1: 2
   swipeAttack_P1: {fileID: 483257310}
   chargeAttack_btn_P1: 0
   chargeAttack_P1: {fileID: 511886323}
@@ -790,8 +790,8 @@ MonoBehaviour:
   projectile_P2: {fileID: 442410078}
   teleport_btn_P2: 5
   teleport_P2: {fileID: 463940163}
-  swipeAttack_btn_L_P2: 2
-  swipeAttack_btn_R_P2: 1
+  swipeAttack_btn_L_P2: 1
+  swipeAttack_btn_R_P2: 2
   swipeAttack_P2: {fileID: 483257310}
   chargeAttack_btn_P2: 0
   chargeAttack_P2: {fileID: 511886323}
@@ -923,9 +923,49 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 5479351880429195047, guid: 8b56085bd493a5343a1e7cab8351f578,
+    - target: {fileID: 4075508952797667416, guid: 8b56085bd493a5343a1e7cab8351f578,
         type: 3}
-      propertyPath: m_IsActive
+      propertyPath: m_Color.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4075508952797667416, guid: 8b56085bd493a5343a1e7cab8351f578,
+        type: 3}
+      propertyPath: m_Color.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4075508952797667416, guid: 8b56085bd493a5343a1e7cab8351f578,
+        type: 3}
+      propertyPath: m_Color.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4075508953471977661, guid: 8b56085bd493a5343a1e7cab8351f578,
+        type: 3}
+      propertyPath: m_Color.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4075508953471977661, guid: 8b56085bd493a5343a1e7cab8351f578,
+        type: 3}
+      propertyPath: m_Color.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4075508953471977661, guid: 8b56085bd493a5343a1e7cab8351f578,
+        type: 3}
+      propertyPath: m_Color.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4075508953989262771, guid: 8b56085bd493a5343a1e7cab8351f578,
+        type: 3}
+      propertyPath: m_Color.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4075508953989262771, guid: 8b56085bd493a5343a1e7cab8351f578,
+        type: 3}
+      propertyPath: m_Color.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4075508953989262771, guid: 8b56085bd493a5343a1e7cab8351f578,
+        type: 3}
+      propertyPath: m_Color.b
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5479351881573945889, guid: 8b56085bd493a5343a1e7cab8351f578,

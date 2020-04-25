@@ -9,6 +9,7 @@ public class HitboxLogic : MonoBehaviour
         if (other.tag == "Hurtbox" && other.transform.parent != transform.parent.parent)
         {
             other.transform.parent.GetComponent<PocketPlayerController>().stateMachine.ChangeState(PlayerState.Hitstun);
+            transform.parent.parent.GetComponent<PocketPlayerController>().framesWithoutTeleport = 999;
         }
     }
 }

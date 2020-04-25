@@ -48,14 +48,15 @@ public class PocketPlayerController : MonoBehaviour
 
     [HideInInspector]
     public GameObject hitBox, hurtBox, model, line;
-
+    private GameObject BallLight;
     private Color color_idle = Color.white,
                   color_run = Color.white,
                   color_charge = Color.yellow,
                   color_attack = Color.yellow,
                   color_hitstun = Color.magenta,
                   color_dead = new Color(.25f, .25f, .25f, 1f);
-    private int framesWithoutTeleport = 0, framesWithoutProjectile = 0;
+    [HideInInspector]
+    public int framesWithoutTeleport = 0, framesWithoutProjectile = 0;
     [HideInInspector]
     public Transform hitboxHolder;
     private Vector3 moveVector = new Vector3();
@@ -64,6 +65,7 @@ public class PocketPlayerController : MonoBehaviour
 
     public void InitializePlayer(int playerId)
     {
+        BallLight = GameObject.Find("Ball Light" + playerId);
         playerDetails = new PlayerDetails(playerId);
         masterLogic = GameObject.FindObjectOfType<MasterLogic>();
 
@@ -104,6 +106,7 @@ public class PocketPlayerController : MonoBehaviour
 
     void Dead()
     {
+        StopAllCoroutines();
         SetBallColor(color_dead);
     }
 
@@ -115,23 +118,24 @@ public class PocketPlayerController : MonoBehaviour
 
     void Run()
     {
+        StopAllCoroutines();
         SetBallColor(color_run, isBlank: true);
         ToggleHitbox(hitBox, false);
     }
 
     void BeginCharge()
     {
+        StopAllCoroutines();
         chargeCounter = 0;
         SetBallColor(color_charge, isBlank: true);
-        StopCoroutine("chargeAttack");
         StartCoroutine("chargeAttack");
     }
 
     void ChargeAttackRecovery()
     {
+        StopAllCoroutines();
         line.SetActive(false);
         SetBallColor(color_attack, isBlank: true);
-        StopCoroutine("chargeAttackRecovery");
         StartCoroutine("chargeAttackRecovery");
     }
 
@@ -148,13 +152,12 @@ public class PocketPlayerController : MonoBehaviour
     void GetHit(bool hitByProjectile)
     {
         SetBallColor(color_hitstun);
-        StopCoroutine("chargeAttack");
-        StopCoroutine("swipeAttack");
-        StopCoroutine("teleport");
-        StopCoroutine("projectile");
-        StopCoroutine("getHitByChargeAttack");
-        StopCoroutine("getHitBySwipeAttack");
-        StopCoroutine("getHitByProjectile");
+        StopAllCoroutines();
+        line.SetActive(false);
+        ResetHitboxOrientation();
+        model.GetComponent<MeshRenderer>().enabled = true;
+        ToggleHitbox(hurtBox, true, false);
+        ToggleHitbox(hitBox, false, true);
 
         if (hitByProjectile)
         {
@@ -166,7 +169,7 @@ public class PocketPlayerController : MonoBehaviour
             {
                 case PlayerState.ChargeAttackRecovery: StartCoroutine("getHitByChargeAttack"); break;
                 case PlayerState.SwipeAttack: StartCoroutine("getHitBySwipeAttack"); break;
-                default: Debug.Log("NOT SURE WHAT KIND OF ATTACK WE GOT HIT BY!"); break;
+                default: Debug.LogError("WEIRD! WE GOT HIT BY: " + otherPlayerController.stateMachine.GetCurrentStateEnum().ToString()); StartCoroutine("getHitByProjectile"); break;
             }
         }
     }
@@ -174,24 +177,26 @@ public class PocketPlayerController : MonoBehaviour
 
     void SwipeAttack()
     {
+        StopAllCoroutines();
         SetBallColor(color_charge, isBlank: true);
-        StopCoroutine("swipeAttack");
         StartCoroutine("swipeAttack");
     }
 
     void Teleport()
     {
+        StopAllCoroutines();
+        ToggleHitbox(hitBox, false, true);
+        model.GetComponent<MeshRenderer>().enabled = true;
         framesWithoutTeleport = 0;
         SetBallColor(color_charge, isBlank: true);
-        StopCoroutine("teleport");
         StartCoroutine("teleport");
     }
 
     void Projectile()
     {
+        StopAllCoroutines();
         framesWithoutProjectile = 0;
         SetBallColor(color_charge, isBlank: true);
-        StopCoroutine("projectile");
         StartCoroutine("projectile");
     }
 
@@ -211,7 +216,7 @@ public class PocketPlayerController : MonoBehaviour
             float weight = (float)chargeCounter / (float)ChargeAttackProperties.maxChargeFrames;
 
             SetBallColor(new Color(weight, 0f, 0f) * 1.5f, false, weight * 1.5f);
-            if (chargeCounter > ChargeAttackProperties.minChargeFrames + 2)
+            if (chargeCounter > ChargeAttackProperties.minChargeFrames + 15)
             {
                 line.SetActive(true);
             }
@@ -517,6 +522,9 @@ public class PocketPlayerController : MonoBehaviour
         if (!isPlayerStateActive(PlayerState.Projectile))
             framesWithoutProjectile++;
 
+        BallLight.GetComponent<Light>().color = CanTeleport() && ((!isPlayerStateActive(PlayerState.Hitstun)) && (!isPlayerStateActive(PlayerState.BulletHitstun))) ? Color.cyan : Color.white;
+        BallLight.GetComponent<Light>().intensity = CanTeleport() && ((!isPlayerStateActive(PlayerState.Hitstun)) && (!isPlayerStateActive(PlayerState.BulletHitstun))) ? 8f : 1.62f;
+
     }
 
     public void GetInputs()
@@ -649,12 +657,12 @@ public class PocketPlayerController : MonoBehaviour
     public Button GetButtonMappingForMove(string moveType)
     {
         switch (moveType)
-            {
-                case "Projectile": return playerDetails.id == 1 ? masterLogic.projectile_btn_P1 : masterLogic.projectile_btn_P2;
-                case "Teleport": return playerDetails.id == 1 ? masterLogic.teleport_btn_P1 : masterLogic.teleport_btn_P2;
-                case "ChargeAttack": return playerDetails.id == 1 ? masterLogic.chargeAttack_btn_P1 : masterLogic.chargeAttack_btn_P2;
-                case "SwipeAttackLeft": return playerDetails.id == 1 ? masterLogic.swipeAttack_btn_L_P1 : masterLogic.swipeAttack_btn_L_P2;
-                case "SwipeAttackRight": return playerDetails.id == 1 ? masterLogic.swipeAttack_btn_R_P1 : masterLogic.swipeAttack_btn_R_P2;
+        {
+            case "Projectile": return playerDetails.id == 1 ? masterLogic.projectile_btn_P1 : masterLogic.projectile_btn_P2;
+            case "Teleport": return playerDetails.id == 1 ? masterLogic.teleport_btn_P1 : masterLogic.teleport_btn_P2;
+            case "ChargeAttack": return playerDetails.id == 1 ? masterLogic.chargeAttack_btn_P1 : masterLogic.chargeAttack_btn_P2;
+            case "SwipeAttackLeft": return playerDetails.id == 1 ? masterLogic.swipeAttack_btn_L_P1 : masterLogic.swipeAttack_btn_L_P2;
+            case "SwipeAttackRight": return playerDetails.id == 1 ? masterLogic.swipeAttack_btn_R_P1 : masterLogic.swipeAttack_btn_R_P2;
             default: return Button.Start;
         }
     }
