@@ -558,7 +558,7 @@ public class PocketPlayerController : MonoBehaviour
             for (int i = 0; i < 10; i++)
                 RegisterControllerInputs("joystick " + playerDetails.id + " button " + i, i);
 
-            bufferedButton.framesLeft--;
+            bufferedButton.framesLeft -= 1;
             if (bufferedButton.framesLeft < 0)
                 bufferedButton = new BufferButton() { button = Button.Select, framesLeft = 0 };
         }
@@ -596,12 +596,7 @@ public class PocketPlayerController : MonoBehaviour
 
     public bool ButtonPressed(Button button)
     {
-        if (bufferedButton.button == button && bufferedButton.framesLeft > 0)
-        {
-            bufferedButton.framesLeft = -1;
-            return true;
-        }
-        return ButtonList_OnKeyDown.Contains(button);
+        return (ButtonList_OnKeyDown.Contains(button) || (bufferedButton.button == button && bufferedButton.framesLeft > 0));
     }
 
     private void OnGUI()
