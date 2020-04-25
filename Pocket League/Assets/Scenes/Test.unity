@@ -772,6 +772,7 @@ MonoBehaviour:
   playerSpeed: 0.165
   DirectionalInfluenceMultiplier: 0.35
   stockCount: 4
+  bufferWindow: 50
   ResetPercentOnKill: 1
   percentCharacterOffsetX: -15
   tableSize: 3

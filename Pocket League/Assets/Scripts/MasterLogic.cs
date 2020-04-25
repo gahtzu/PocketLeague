@@ -19,6 +19,9 @@ public class MasterLogic : MonoBehaviour
     [Tooltip("Number of stocks that a player starts with.")]
     [SerializeField]
     public int stockCount;
+    [Tooltip("buffer window")]
+    [SerializeField]
+    public int bufferWindow;
     [Tooltip("Should both players reset their percent after a stock is taken?")]
     [SerializeField]
     public bool ResetPercentOnKill;

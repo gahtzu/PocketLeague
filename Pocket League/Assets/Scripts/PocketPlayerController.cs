@@ -61,6 +61,13 @@ public class PocketPlayerController : MonoBehaviour
     public Transform hitboxHolder;
     private Vector3 moveVector = new Vector3();
     private bool hasController = false;
+    [HideInInspector]
+    public BufferButton bufferedButton = new BufferButton() { button = Button.Select, framesLeft = 0 };
+    public class BufferButton
+    {
+        public Button button { get; set; }
+        public int framesLeft { get; set; }
+    }
     #endregion
 
     public void InitializePlayer(int playerId)
@@ -550,6 +557,10 @@ public class PocketPlayerController : MonoBehaviour
         {
             for (int i = 0; i < 10; i++)
                 RegisterControllerInputs("joystick " + playerDetails.id + " button " + i, i);
+
+            bufferedButton.framesLeft--;
+            if (bufferedButton.framesLeft < 0)
+                bufferedButton = new BufferButton() { button = Button.Select, framesLeft = 0 };
         }
         else
         {
@@ -568,9 +579,14 @@ public class PocketPlayerController : MonoBehaviour
 
     public void RegisterControllerInputs(string keycode, int buttonNumber)
     {
-        if (Input.GetKeyDown(keycode)) ButtonList_OnKeyDown.Add((Button)buttonNumber);
+        if (Input.GetKeyDown(keycode))
+        {
+            ButtonList_OnKeyDown.Add((Button)buttonNumber);
+            bufferedButton = new BufferButton() { button = (Button)buttonNumber, framesLeft = masterLogic.bufferWindow + 1 };
+        }
         if (Input.GetKeyUp(keycode)) ButtonList_OnKeyUp.Add((Button)buttonNumber);
         if (Input.GetKey(keycode)) ButtonList_OnKey.Add((Button)buttonNumber);
+
     }
 
     public bool ButtonReleased(Button button)
@@ -580,7 +596,22 @@ public class PocketPlayerController : MonoBehaviour
 
     public bool ButtonPressed(Button button)
     {
+        if (bufferedButton.button == button && bufferedButton.framesLeft > 0)
+        {
+            bufferedButton.framesLeft = -1;
+            return true;
+        }
         return ButtonList_OnKeyDown.Contains(button);
+    }
+
+    private void OnGUI()
+    {
+        if (playerDetails.id == 1)
+        {
+            GUILayout.Label("BUFFERED BUTTON: " + bufferedButton.button + " - " + bufferedButton.framesLeft);
+            GUILayout.Label("BUFFERED BUTTON: " + bufferedButton.button + " - " + bufferedButton.framesLeft);
+            GUILayout.Label("BUFFERED BUTTON: " + bufferedButton.button + " - " + bufferedButton.framesLeft);
+        }
     }
 
     public bool ButtonHeld(Button button)
