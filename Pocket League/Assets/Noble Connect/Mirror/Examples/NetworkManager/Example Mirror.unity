@@ -172,7 +172,7 @@ MonoBehaviour:
   serverTickRate: 30
   offlineScene: 
   onlineScene: 
-  transport: {fileID: 0}
+  transport: {fileID: 437631053}
   networkAddress: localhost
   maxConnections: 4
   authenticator: {fileID: 0}
