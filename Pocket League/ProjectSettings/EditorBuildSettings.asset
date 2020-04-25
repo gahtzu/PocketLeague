@@ -5,6 +5,10 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Test.unity
     guid: e5e26ddebfa6c234dbd840f19af89d93
+  - enabled: 1
+    path: Assets/Noble Connect/Mirror/Examples/NetworkManager/Example Mirror.unity
+    guid: e7237db53eb261e4bbb6f84f09986e06
+  m_configObjects: {}
