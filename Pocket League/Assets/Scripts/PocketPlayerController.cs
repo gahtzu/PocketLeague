@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-
+using UnityEngine.UI;
 public class PocketPlayerController : MonoBehaviour
 {
 
@@ -42,9 +42,9 @@ public class PocketPlayerController : MonoBehaviour
     private int startCounter = 0;
     [HideInInspector]
     public bool isSwipingRight = false;
-    private List<Button> ButtonList_OnKeyDown = new List<Button>();
-    private List<Button> ButtonList_OnKeyUp = new List<Button>();
-    private List<Button> ButtonList_OnKey = new List<Button>();
+    private List<MasterLogic.Button> ButtonList_OnKeyDown = new List<MasterLogic.Button>();
+    private List<MasterLogic.Button> ButtonList_OnKeyUp = new List<MasterLogic.Button>();
+    private List<MasterLogic.Button> ButtonList_OnKey = new List<MasterLogic.Button>();
 
     [HideInInspector]
     public GameObject hitBox, hurtBox, model, line;
@@ -62,10 +62,10 @@ public class PocketPlayerController : MonoBehaviour
     private Vector3 moveVector = new Vector3();
     private bool hasController = false;
     [HideInInspector]
-    public BufferButton bufferedButton = new BufferButton() { button = Button.Select, framesLeft = 0 };
+    public BufferButton bufferedButton = new BufferButton() { button = MasterLogic.Button.Select, framesLeft = 0 };
     public class BufferButton
     {
-        public Button button { get; set; }
+        public MasterLogic.Button button { get; set; }
         public int framesLeft { get; set; }
     }
     #endregion
@@ -512,12 +512,12 @@ public class PocketPlayerController : MonoBehaviour
             }
         }
 
-        if (ButtonPressed(Button.Start))
+        if (ButtonPressed(MasterLogic.Button.Start))
             gameStateMachine.ChangeState(GameStateId.Battle); //skip the countdown
-        if (ButtonPressed(Button.Select))
+        if (ButtonPressed(MasterLogic.Button.Select))
             masterLogic.viewDebug = !masterLogic.viewDebug; //view debug info
 
-        if (ButtonHeld(Button.Start))
+        if (ButtonHeld(MasterLogic.Button.Start))
         {
             startCounter++; //hold start for 55 frames to reload the scene
             if (startCounter > 55) { SceneManager.LoadScene(SceneManager.GetActiveScene().name); }
@@ -560,7 +560,7 @@ public class PocketPlayerController : MonoBehaviour
 
             bufferedButton.framesLeft -= 1;
             if (bufferedButton.framesLeft < 0)
-                bufferedButton = new BufferButton() { button = Button.Select, framesLeft = 0 };
+                bufferedButton = new BufferButton() { button = MasterLogic.Button.Select, framesLeft = 0 };
         }
         else
         {
@@ -572,29 +572,29 @@ public class PocketPlayerController : MonoBehaviour
 
     public void RegisterKeyboardInputs(KeyCode keycode, int buttonNumber)
     {
-        if (Input.GetKeyDown(keycode)) ButtonList_OnKeyDown.Add((Button)buttonNumber);
-        if (Input.GetKeyUp(keycode)) ButtonList_OnKeyUp.Add((Button)buttonNumber);
-        if (Input.GetKey(keycode)) ButtonList_OnKey.Add((Button)buttonNumber);
+        if (Input.GetKeyDown(keycode)) ButtonList_OnKeyDown.Add((MasterLogic.Button)buttonNumber);
+        if (Input.GetKeyUp(keycode)) ButtonList_OnKeyUp.Add((MasterLogic.Button)buttonNumber);
+        if (Input.GetKey(keycode)) ButtonList_OnKey.Add((MasterLogic.Button)buttonNumber);
     }
 
     public void RegisterControllerInputs(string keycode, int buttonNumber)
     {
         if (Input.GetKeyDown(keycode))
         {
-            ButtonList_OnKeyDown.Add((Button)buttonNumber);
-            bufferedButton = new BufferButton() { button = (Button)buttonNumber, framesLeft = masterLogic.bufferWindow + 1 };
+            ButtonList_OnKeyDown.Add((MasterLogic.Button)buttonNumber);
+            bufferedButton = new BufferButton() { button = (MasterLogic.Button)buttonNumber, framesLeft = masterLogic.bufferWindow + 1 };
         }
-        if (Input.GetKeyUp(keycode)) ButtonList_OnKeyUp.Add((Button)buttonNumber);
-        if (Input.GetKey(keycode)) ButtonList_OnKey.Add((Button)buttonNumber);
+        if (Input.GetKeyUp(keycode)) ButtonList_OnKeyUp.Add((MasterLogic.Button)buttonNumber);
+        if (Input.GetKey(keycode)) ButtonList_OnKey.Add((MasterLogic.Button)buttonNumber);
 
     }
 
-    public bool ButtonReleased(Button button)
+    public bool ButtonReleased(MasterLogic.Button button)
     {
         return ButtonList_OnKeyUp.Contains(button);
     }
 
-    public bool ButtonPressed(Button button)
+    public bool ButtonPressed(MasterLogic.Button button)
     {
         return (ButtonList_OnKeyDown.Contains(button) || (bufferedButton.button == button && bufferedButton.framesLeft > 0));
     }
@@ -609,7 +609,7 @@ public class PocketPlayerController : MonoBehaviour
         }
     }
 
-    public bool ButtonHeld(Button button)
+    public bool ButtonHeld(MasterLogic.Button button)
     {
         return ButtonList_OnKey.Contains(button);
     }
@@ -680,7 +680,7 @@ public class PocketPlayerController : MonoBehaviour
         }
     }
 
-    public Button GetButtonMappingForMove(string moveType)
+    public MasterLogic.Button GetButtonMappingForMove(string moveType)
     {
         switch (moveType)
         {
@@ -689,7 +689,7 @@ public class PocketPlayerController : MonoBehaviour
             case "ChargeAttack": return playerDetails.id == 1 ? masterLogic.chargeAttack_btn_P1 : masterLogic.chargeAttack_btn_P2;
             case "SwipeAttackLeft": return playerDetails.id == 1 ? masterLogic.swipeAttack_btn_L_P1 : masterLogic.swipeAttack_btn_L_P2;
             case "SwipeAttackRight": return playerDetails.id == 1 ? masterLogic.swipeAttack_btn_R_P1 : masterLogic.swipeAttack_btn_R_P2;
-            default: return Button.Start;
+            default: return MasterLogic.Button.Start;
         }
     }
 }

@@ -6,5 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Test.unity
-    guid: e5e26ddebfa6c234dbd840f19af89d93
+    path: Assets/Photon/PhotonBolt/scenes/BoltDebugScene.unity
+    guid: 859b4a4289abd7b48a0b6081a6063f5a
+  m_configObjects: {}

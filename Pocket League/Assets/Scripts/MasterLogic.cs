@@ -387,19 +387,20 @@ public class MasterLogic : MonoBehaviour
     }
     #endregion
 
-
+    public enum Button
+    {
+        A = 0,
+        B = 1,
+        X = 2,
+        Y = 3,
+        LeftBumper = 4,
+        RightBumper = 5,
+        Select = 6,
+        Start = 7,
+        LStickButton = 8,
+        RStickButton = 9
+    }
 }
 
-public enum Button
-{
-    A = 0,
-    B = 1,
-    X = 2,
-    Y = 3,
-    LeftBumper = 4,
-    RightBumper = 5,
-    Select = 6,
-    Start = 7,
-    LStickButton = 8,
-    RStickButton = 9
-}
+
+
