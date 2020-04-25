@@ -31,6 +31,28 @@ public class MasterLogic : MonoBehaviour
 
     [Header("Prefabs")]
     public GameObject playerObj;
+
+    [Header("Player 1 Attacks")]
+    [SerializeField]
+    public Projectile projectile_P1;
+    [SerializeField]
+    public Teleport teleport_P1;
+    [SerializeField]
+    public SwipeAttack swipeAttack_P1;
+    [SerializeField]
+    public ChargeAttack chargeAttack_P1;
+
+    [Header("Player 2 Attacks")]
+    [SerializeField]
+    public Projectile projectile_P2;
+    [SerializeField]
+    public Teleport teleport_P2;
+    [SerializeField]
+    public SwipeAttack swipeAttack_P2;
+    [SerializeField]
+    public ChargeAttack chargeAttack_P2;
+
+
     #endregion
 
     #region Variables
@@ -78,6 +100,8 @@ public class MasterLogic : MonoBehaviour
 
         players[0].otherPlayer = GameObject.Find("Player 2");
         players[1].otherPlayer = GameObject.Find("Player 1");
+        players[0].otherPlayerController = players[1].GetComponent<PocketPlayerController>();
+        players[1].otherPlayerController = players[0].GetComponent<PocketPlayerController>();
 
         StartCoroutine("CountDown");
     }
@@ -233,7 +257,7 @@ public class MasterLogic : MonoBehaviour
         {
             foreach (PocketPlayerController player in players)
             {
-                if (!player.isPlayerStateActive(PlayerState.Dead))
+                if (!player.isPlayerStateActive(PlayerState.Dead) && !player.isPlayerStateActive(PlayerState.Teleport))
                 {
                     wordBoxOffsetX = -1f * (Mathf.Floor(player.playerDetails.percent).ToString() + "%").Length * percentCharacterOffsetX / 2f;
 

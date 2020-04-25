@@ -11,9 +11,11 @@ public class ChargeAttack : Attack
     [Tooltip("With how much velocity are you knocked back when attacked with a FULLY-charged attack?")]
     [SerializeField]
     public float maxKnockbackVelocity;
-    [Tooltip("SpeedMultiplierWhileCharging")]
+    [Tooltip("What should our speed be multiplied by while charging")]
     [SerializeField]
     public float speedMultiplierWhileCharging;
+    [SerializeField]
+    public bool rotationLockedDuringCharge;
     [Tooltip("How big is your hitbox when attacking (NON-CHARGED)")]
     [SerializeField]
     public Vector3 smallHitboxScale;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -22,11 +23,14 @@ public class PocketPlayerController : MonoBehaviour
     [HideInInspector]
     public SwipeAttack SwipeAttackProperties;
     [HideInInspector]
-    public float chargeMultiple = 0f, knockbackVelocity = 0f;
+    public float chargeWeight = 0f, knockbackVelocity = 0f;
     [HideInInspector]
     public Vector2 JoystickPosition = new Vector2(0f, 0f);
     [HideInInspector]
     public GameObject otherPlayer;
+    [HideInInspector]
+    public PocketPlayerController otherPlayerController;
+
     [HideInInspector]
     public int chargeCounter = 0;
     [HideInInspector]
@@ -35,13 +39,13 @@ public class PocketPlayerController : MonoBehaviour
     public Vector3 knockbackTrajectory = new Vector3(0f, 0f, 0f);
     private int startCounter = 0;
     [HideInInspector]
-    public bool isSwipingLeft = false;
+    public bool isSwipingRight = false;
     private List<Button> ButtonList_OnKeyDown = new List<Button>();
     private List<Button> ButtonList_OnKeyUp = new List<Button>();
     private List<Button> ButtonList_OnKey = new List<Button>();
 
     [HideInInspector]
-    public GameObject hitBox, model, line;
+    public GameObject hitBox, hurtBox, model, line;
 
     private Color color_idle = Color.white,
                   color_run = Color.white,
@@ -49,8 +53,9 @@ public class PocketPlayerController : MonoBehaviour
                   color_attack = Color.yellow,
                   color_hitstun = Color.magenta,
                   color_dead = new Color(.25f, .25f, .25f, 1f);
-    private int framesWithoutTeleport = 0;
-
+    private int framesWithoutTeleport = 0, framesWithoutProjectile = 0;
+    [HideInInspector]
+    public Transform hitboxHolder;
     private Vector3 moveVector = new Vector3();
     private bool hasController = false;
     #endregion
@@ -59,12 +64,11 @@ public class PocketPlayerController : MonoBehaviour
     {
         playerDetails = new PlayerDetails(playerId);
         masterLogic = GameObject.FindObjectOfType<MasterLogic>();
-        SwipeAttackProperties = GameObject.FindObjectOfType<SwipeAttack>();
-        ChargeAttackProperties = GameObject.FindObjectOfType<ChargeAttack>();
-        ProjectileProperties = GameObject.FindObjectOfType<Projectile>();
-        TeleportProperties = GameObject.FindObjectOfType<Teleport>();
 
-        framesWithoutTeleport = TeleportProperties.framesToRecharge;
+        SwipeAttackProperties = playerId == 1 ? masterLogic.swipeAttack_P1 : masterLogic.swipeAttack_P2;
+        ChargeAttackProperties = playerId == 1 ? masterLogic.chargeAttack_P1 : masterLogic.chargeAttack_P2;
+        ProjectileProperties = playerId == 1 ? masterLogic.projectile_P1 : masterLogic.projectile_P2;
+        TeleportProperties = playerId == 1 ? masterLogic.teleport_P1 : masterLogic.teleport_P2;
 
         gameStateMachine = masterLogic.gameStateMachine;
 
@@ -72,9 +76,11 @@ public class PocketPlayerController : MonoBehaviour
         model.SetActive(true);
         SetBallColor(color_idle, isBlank: true);
         line = transform.Find("Line").gameObject;
-        hitBox = transform.Find("HitboxHolder").Find("hitbox").gameObject;
+        hitboxHolder = transform.Find("HitboxHolder");
+        hitBox = hitboxHolder.Find("hitbox").gameObject;
         hitBox.transform.localScale = ChargeAttackProperties.smallHitboxScale;
         hitBox.transform.localPosition += new Vector3(0f, 0f, ChargeAttackProperties.smallHitboxOffset);
+        hurtBox = transform.Find("hurtbox").gameObject;
 
         stateMachine.Subscribe(BeginCharge, PlayerState.Charge, true);
         stateMachine.Subscribe(ChargeAttackRecovery, PlayerState.ChargeAttackRecovery, true);
@@ -88,6 +94,9 @@ public class PocketPlayerController : MonoBehaviour
         stateMachine.Subscribe(Actionable, PlayerState.Actionable, true);
 
         hasController = Input.GetJoystickNames().Length >= playerId;
+
+        framesWithoutTeleport = TeleportProperties.rechargeFrames;
+        framesWithoutProjectile = ProjectileProperties.rechargeFrames;
     }
 
     void Dead()
@@ -97,7 +106,6 @@ public class PocketPlayerController : MonoBehaviour
 
     void Idle()
     {
-        line.SetActive(false);
         SetBallColor(color_idle, isBlank: true);
         ToggleHitbox(hitBox, false);
     }
@@ -110,6 +118,7 @@ public class PocketPlayerController : MonoBehaviour
 
     void BeginCharge()
     {
+        chargeCounter = 0;
         SetBallColor(color_charge, isBlank: true);
         StopCoroutine("chargeAttack");
         StartCoroutine("chargeAttack");
@@ -119,8 +128,8 @@ public class PocketPlayerController : MonoBehaviour
     {
         line.SetActive(false);
         SetBallColor(color_attack, isBlank: true);
-        StopCoroutine("changeAttackRecovery");
-        StartCoroutine("changeAttackRecovery");
+        StopCoroutine("chargeAttackRecovery");
+        StartCoroutine("chargeAttackRecovery");
     }
 
     void GetHit()
@@ -130,9 +139,15 @@ public class PocketPlayerController : MonoBehaviour
         StopCoroutine("swipeAttack");
         StopCoroutine("teleport");
         StopCoroutine("projectile");
+        StopCoroutine("getHitByChargeAttack");
+        StopCoroutine("getHitBySwipeAttack");
 
-        StopCoroutine("getHit");
-        StartCoroutine("getHit");
+        switch (otherPlayerController.stateMachine.GetCurrentStateEnum())
+        {
+            case PlayerState.ChargeAttackRecovery: StartCoroutine("getHitByChargeAttack"); break;
+            case PlayerState.SwipeAttack: StartCoroutine("getHitBySwipeAttack"); break;
+            default: Debug.Log("NOT SURE WHAT KIND OF ATTACK WE GOT HIT BY!"); break;
+        }
     }
 
     void SwipeAttack()
@@ -159,66 +174,57 @@ public class PocketPlayerController : MonoBehaviour
 
     void Actionable()
     {
+        line.SetActive(false);
         ResetHitboxOrientation();
         model.GetComponent<MeshRenderer>().enabled = true;
-        ToggleHitbox(transform.Find("hurtbox").gameObject, true, false);
+        ToggleHitbox(hurtBox, true, false);
+        ToggleHitbox(hitBox, false, false);
     }
 
-    private IEnumerator teleport()
+    private IEnumerator chargeAttack()
     {
-        for (int i = 0; i < TeleportProperties.startupFrames; i++)
-            yield return new WaitForEndOfFrame();
-
-        Vector3 startPos = transform.position;
-        Vector3 target = Vector3.MoveTowards(transform.position, transform.Find("VeryFront").transform.position, TeleportProperties.teleportDistance);
-
-        RaycastHit[] hits = Physics.RaycastAll(transform.position, (target - startPos).normalized, TeleportProperties.teleportDistance);
-        foreach (RaycastHit hit in hits)
-            if (hit.transform.tag == "Wall")
-                target = Vector3.MoveTowards(hit.point, Vector3.zero, 1f);
-
-        target = new Vector3(target.x, transform.position.y, target.z);
-
-        if (TeleportProperties.modelHiddenWhileTeleporting)
-            model.GetComponent<MeshRenderer>().enabled = false;
-        if (TeleportProperties.invincibleWhileTeleporting)
-            ToggleHitbox(transform.Find("hurtbox").gameObject, false, false);
-
-        for (int i = 0; i < TeleportProperties.framesToTeleport; i++)
+        while (isPlayerStateActive(PlayerState.Charge))
         {
-            float weight = (float)i / (float)TeleportProperties.framesToTeleport;
-            transform.position = Vector3.Lerp(startPos, target, weight);
-            yield return new WaitForEndOfFrame();
+            float weight = (float)chargeCounter / (float)ChargeAttackProperties.maxChargeFrames;
+
+            SetBallColor(new Color(weight, 0f, 0f) * 1.5f, false, weight * 1.5f);
+            if (chargeCounter > ChargeAttackProperties.minChargeFrames + 2)
+            {
+                line.SetActive(true);
+            }
+
+            if (chargeCounter > ChargeAttackProperties.maxChargeFrames)
+            {   //held for maximum charge
+                chargeCounter = ChargeAttackProperties.maxChargeFrames;
+                stateMachine.ChangeState(PlayerState.ChargeAttackRecovery);
+            }
+            else if (chargeCounter >= ChargeAttackProperties.minChargeFrames && !ButtonList_OnKey.Contains(Button.B))
+            {   //we let go of charge
+                stateMachine.ChangeState(PlayerState.ChargeAttackRecovery);
+            }
+            else
+            {   //still charging
+                yield return new WaitForEndOfFrame();
+                chargeCounter++;
+            }
         }
-
-        ToggleHitbox(transform.Find("hurtbox").gameObject, true, false);
-        model.GetComponent<MeshRenderer>().enabled = true;
-        transform.position = target;
-
-        for (int i = 0; i < TeleportProperties.lagFrames; i++)
-            yield return new WaitForEndOfFrame();
-
-
-        stateMachine.ChangeState(PlayerState.Actionable);
     }
 
-
-    private IEnumerator getHit()
+    private IEnumerator getHitByChargeAttack()
     {
         //disable opponents hitbox until their next attack
-        ToggleHitbox(otherPlayer.transform.Find("HitboxHolder").Find("hitbox").gameObject, isEnabled: false, alsoToggleVisual: false);
+        ToggleHitbox(otherPlayerController.hitBox, isEnabled: false, alsoToggleVisual: false);
 
-        //values weighted from 0 to 1
-        float _chargeMultiple = otherPlayer.GetComponent<PocketPlayerController>().chargeMultiple;
-        float _percentMultiple = playerDetails.percent / 100f;
+        float _chargeWeight = otherPlayer.GetComponent<PocketPlayerController>().chargeWeight;
+        float _percentWeight = playerDetails.percent / 100f;
 
         //add percent from being hit
-        playerDetails.percent += ScaleMultiplier(ChargeAttackProperties.minPercentDealt, ChargeAttackProperties.maxPercentDealt, _chargeMultiple);
+        playerDetails.percent += ScaleMultiplier(ChargeAttackProperties.minPercentDealt, ChargeAttackProperties.maxPercentDealt, _chargeWeight);
 
         //hitstun length, and velocity (based on percent and charge)
-        float hitstunLength = ScaleMultiplier(ChargeAttackProperties.minHitstunLength, ChargeAttackProperties.maxHitstunLength, _percentMultiple);
-        knockbackVelocity = ScaleMultiplier(ChargeAttackProperties.minKnockbackVelocity, ChargeAttackProperties.maxKnockbackVelocity, _chargeMultiple);
-        knockbackVelocity += ScaleMultiplier(ChargeAttackProperties.minKnockbackVelocityAdditionFromPercent, ChargeAttackProperties.maxKnockbackVelocityAdditionFromPercent, _percentMultiple);
+        float hitstunLength = ScaleMultiplier(ChargeAttackProperties.minHitstunLength, ChargeAttackProperties.maxHitstunLength, _percentWeight);
+        knockbackVelocity = ScaleMultiplier(ChargeAttackProperties.minKnockbackVelocity, ChargeAttackProperties.maxKnockbackVelocity, _chargeWeight);
+        knockbackVelocity += ScaleMultiplier(ChargeAttackProperties.minKnockbackVelocityAdditionFromPercent, ChargeAttackProperties.maxKnockbackVelocityAdditionFromPercent, _percentWeight);
 
         //direction the player is attacking:
         Vector3 attackAngleTrajectory = (otherPlayer.transform.position - otherPlayer.transform.Find("Front").position).normalized;
@@ -236,55 +242,17 @@ public class PocketPlayerController : MonoBehaviour
         stateMachine.ChangeState(PlayerState.Actionable);
     }
 
-    private IEnumerator chargeAttack()
-    {
-        chargeCounter = 0;
-        while (isPlayerStateActive(PlayerState.Charge))
-        {
-            float weight = (float)chargeCounter / (float)ChargeAttackProperties.maxChargeFrames;
-            SetBallColor(new Color(weight, 0f, 0f) * 1.5f, false, weight * 1.5f);
-
-            if (chargeCounter > ChargeAttackProperties.minChargeFrames + 2)
-                line.SetActive(true);
-            if (chargeCounter > ChargeAttackProperties.maxChargeFrames)
-            {   //held for maximum charge
-                chargeCounter = ChargeAttackProperties.maxChargeFrames;
-                stateMachine.ChangeState(PlayerState.ChargeAttackRecovery);
-
-                //chargeCounter = ChargeAttackProperties.maxChargeFrames;
-            }
-            else if (chargeCounter >= ChargeAttackProperties.minChargeFrames && !ButtonList_OnKey.Contains(Button.B))
-            {   //we let go of charge
-                stateMachine.ChangeState(PlayerState.ChargeAttackRecovery);
-            }
-            else
-            {   //still charging
-                yield return new WaitForEndOfFrame();
-                chargeCounter++;
-            }
-        }
-    }
-
-    private void ResetHitboxOrientation()
-    {
-        hitBox.transform.parent.localPosition = Vector3.zero;
-        hitBox.transform.localPosition = Vector3.zero;
-        hitBox.transform.parent.localEulerAngles = Vector3.zero;
-        hitBox.transform.localEulerAngles = Vector3.zero;
-
-    }
-
-    private IEnumerator changeAttackRecovery()
+    private IEnumerator chargeAttackRecovery()
     {
         ResetHitboxOrientation();
 
-        chargeMultiple = ((float)chargeCounter - ChargeAttackProperties.minChargeFrames) / (ChargeAttackProperties.maxChargeFrames - ChargeAttackProperties.minChargeFrames);
+        chargeWeight = ((float)chargeCounter - ChargeAttackProperties.minChargeFrames) / (ChargeAttackProperties.maxChargeFrames - ChargeAttackProperties.minChargeFrames);
 
-        float framesToRecover = ScaleMultiplier(ChargeAttackProperties.minAttackCooldownFrames, ChargeAttackProperties.maxAttackCooldownFrames, chargeMultiple);
-        float hitboxActivationFrames = ScaleMultiplier(ChargeAttackProperties.minAttackHitboxActivationFrames, ChargeAttackProperties.maxAttackHitboxActivationFrames, chargeMultiple);
-        float hitboxOffset = ScaleMultiplier(ChargeAttackProperties.smallHitboxOffset, ChargeAttackProperties.bigHitboxOffset, chargeMultiple);
+        float framesToRecover = ScaleMultiplier(ChargeAttackProperties.minAttackCooldownFrames, ChargeAttackProperties.maxAttackCooldownFrames, chargeWeight);
+        float hitboxActivationFrames = ScaleMultiplier(ChargeAttackProperties.minAttackHitboxActivationFrames, ChargeAttackProperties.maxAttackHitboxActivationFrames, chargeWeight);
+        float hitboxOffset = ScaleMultiplier(ChargeAttackProperties.smallHitboxOffset, ChargeAttackProperties.bigHitboxOffset, chargeWeight);
 
-        hitBox.transform.localScale = ScaleMultiplier(ChargeAttackProperties.smallHitboxScale, ChargeAttackProperties.bigHitboxScale, chargeMultiple);
+        hitBox.transform.localScale = ScaleMultiplier(ChargeAttackProperties.smallHitboxScale, ChargeAttackProperties.bigHitboxScale, chargeWeight);
         hitBox.transform.localPosition = Vector3.zero + new Vector3(0f, 0f, hitboxOffset);
         ToggleHitbox(hitBox, true, true);
 
@@ -306,48 +274,103 @@ public class PocketPlayerController : MonoBehaviour
 
     private IEnumerator swipeAttack()
     {
-        chargeCounter = 0;
-
         for (int i = 0; i < SwipeAttackProperties.startupFrames; i++)
             yield return new WaitForEndOfFrame();
 
         ToggleHitbox(hitBox, true, true);
 
-
-        if (SwipeAttackProperties.startingYRotationOffset < 0 && !isSwipingLeft)
+        if (SwipeAttackProperties.startingYRotationOffset < 0 && !isSwipingRight)
             SwipeAttackProperties.startingYRotationOffset *= -1f;
-
-
-        if (SwipeAttackProperties.startingYRotationOffset > 0 && isSwipingLeft)
+        if (SwipeAttackProperties.startingYRotationOffset > 0 && isSwipingRight)
             SwipeAttackProperties.startingYRotationOffset *= -1f;
 
         hitBox.transform.localScale = SwipeAttackProperties.hitBoxScale;
         hitBox.transform.localPosition = SwipeAttackProperties.startingOffset;
-        hitBox.transform.parent.localEulerAngles = new Vector3(0f, SwipeAttackProperties.startingYRotationOffset);
+        hitboxHolder.localEulerAngles = new Vector3(0f, SwipeAttackProperties.startingYRotationOffset, 0f);
 
         float increment = (SwipeAttackProperties.startingYRotationOffset * 2f) / (float)SwipeAttackProperties.framesToSwipe;
 
         for (int i = 0; i < SwipeAttackProperties.framesToSwipe; i++)
         {
-            hitBox.transform.parent.Rotate(new Vector3(0f, -increment, 0f), Space.Self);
+            hitboxHolder.Rotate(new Vector3(0f, -increment, 0f), Space.Self);
             yield return new WaitForEndOfFrame();
-
         }
 
         for (int i = 0; i < SwipeAttackProperties.hitboxLingerFrames; i++)
             yield return new WaitForEndOfFrame();
-
 
         ToggleHitbox(hitBox, false, true);
 
         for (int i = 0; i < SwipeAttackProperties.attackLagFrames; i++)
             yield return new WaitForEndOfFrame();
 
-
         stateMachine.ChangeState(PlayerState.Actionable);
-
     }
 
+    private IEnumerator getHitBySwipeAttack()
+    {
+        //disable opponents hitbox until their next attack
+        ToggleHitbox(otherPlayerController.hitBox, isEnabled: false, alsoToggleVisual: false);
+
+        float _percentWeight = playerDetails.percent / 100f;
+
+        //add percent from being hit
+        playerDetails.percent += SwipeAttackProperties.percentDealt;
+
+        //hitstun length, and velocity (based on percent and charge)
+        float hitstunLength = ScaleMultiplier(ChargeAttackProperties.minHitstunLength, ChargeAttackProperties.maxHitstunLength, _percentWeight);
+        knockbackVelocity = ScaleMultiplier(ChargeAttackProperties.minKnockbackVelocityAdditionFromPercent, ChargeAttackProperties.maxKnockbackVelocityAdditionFromPercent, _percentWeight);
+
+        //direction the player is attacking:
+        //Vector3 attackAngleTrajectory = (otherPlayer.transform.position - otherPlayer.transform.Find("Front").position).normalized;
+        //relative angle between players, rotated some depending on swipe direction
+        Vector3 playerAngleTrajectory = Quaternion.AngleAxis(otherPlayerController.isSwipingRight ? 30f : -30f, Vector3.up) * (otherPlayer.transform.position - transform.position).normalized;
+
+        knockbackTrajectory = (playerAngleTrajectory.SetY(0f).normalized * knockbackVelocity * -1f).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
+
+        for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
+        {
+            MovePlayer(knockbackTrajectory);
+            yield return new WaitForEndOfFrame();
+        }
+
+        stateMachine.ChangeState(PlayerState.Actionable);
+    }
+
+    private IEnumerator teleport()
+    {
+        for (int i = 0; i < TeleportProperties.startupFrames; i++)
+            yield return new WaitForEndOfFrame();
+
+        Vector3 startPos = transform.position;
+        Vector3 target = transform.position + (moveVector.normalized * TeleportProperties.teleportDistance);
+
+        //if we would be teleporting into a wall, set our new target to be within the game's bounds
+        RaycastHit[] hits = Physics.RaycastAll(transform.position, (target - startPos).normalized, TeleportProperties.teleportDistance);
+        foreach (RaycastHit hit in hits.Where(h => h.transform.tag == "Wall").ToArray())
+            target = Vector3.MoveTowards(hit.point, Vector3.zero, 1f).SetY(transform.position.y);
+
+        if (TeleportProperties.modelHiddenWhileTeleporting)
+            model.GetComponent<MeshRenderer>().enabled = false;
+        if (TeleportProperties.invincibleWhileTeleporting)
+            ToggleHitbox(hurtBox, false, false);
+
+        for (int i = 0; i < TeleportProperties.framesToTeleport; i++)
+        {
+            float weight = (float)i / (float)TeleportProperties.framesToTeleport;
+            transform.position = Vector3.Lerp(startPos, target, weight);
+            yield return new WaitForEndOfFrame();
+        }
+        transform.position = target;
+
+        ToggleHitbox(hurtBox, true, false);
+        model.GetComponent<MeshRenderer>().enabled = true;
+
+        for (int i = 0; i < TeleportProperties.lagFrames; i++)
+            yield return new WaitForEndOfFrame();
+
+        stateMachine.ChangeState(PlayerState.Actionable);
+    }
 
     private void LateUpdate()
     {
@@ -386,17 +409,21 @@ public class PocketPlayerController : MonoBehaviour
             }
             else if (ButtonPressed(Button.A))
             {
-                isSwipingLeft = false;
+                isSwipingRight = false;
                 stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
             }
             else if (ButtonPressed(Button.X))
             {
-                isSwipingLeft = true;
+                isSwipingRight = true;
                 stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
             }
-            else if (ButtonPressed(Button.RightBumper) && canTeleport())
+            else if (ButtonPressed(Button.RightBumper) && CanTeleport())
             {
                 stateMachine.ChangeState(PlayerState.Teleport);
+            }
+            else if (ButtonPressed(Button.Y) && CanShootProjectile())
+            {
+                //stateMachine.ChangeState(PlayerState.Projectile);
             }
         }
 
@@ -414,12 +441,9 @@ public class PocketPlayerController : MonoBehaviour
 
         if (!isPlayerStateActive(PlayerState.Teleport))
             framesWithoutTeleport++;
+        if (!isPlayerStateActive(PlayerState.Projectile))
+            framesWithoutProjectile++;
 
-    }
-
-    public bool canTeleport()
-    {
-        return framesWithoutTeleport >= TeleportProperties.framesToRecharge;
     }
 
     public void GetInputs()
@@ -454,20 +478,6 @@ public class PocketPlayerController : MonoBehaviour
         }
     }
 
-    public void MovePlayer(Vector3 movementVector)
-    {
-        if (!isPlayerStateActive(PlayerState.Charge))
-            transform.LookAt(transform.position + movementVector);
-        transform.Translate(movementVector * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.World);
-        model.transform.Rotate(new Vector3(7f, 0f, 0f) * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.Self);
-    }
-
-    public void ReflectKnockbackTrajectory(Vector3 wallColliderNormal)
-    {
-        if (isPlayerStateActive(PlayerState.Hitstun) && masterLogic.isGameStateActive(GameStateId.Battle))
-            knockbackTrajectory = Vector3.Reflect(knockbackTrajectory, wallColliderNormal).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
-    }
-
     public void RegisterKeyboardInputs(KeyCode keycode, int buttonNumber)
     {
         if (Input.GetKeyDown(keycode)) ButtonList_OnKeyDown.Add((Button)buttonNumber);
@@ -495,6 +505,38 @@ public class PocketPlayerController : MonoBehaviour
     public bool ButtonHeld(Button button)
     {
         return ButtonList_OnKey.Contains(button);
+    }
+
+    public bool CanTeleport()
+    {
+        return framesWithoutTeleport >= TeleportProperties.rechargeFrames;
+    }
+
+    public bool CanShootProjectile()
+    {
+        return framesWithoutProjectile >= ProjectileProperties.rechargeFrames;
+    }
+
+    private void ResetHitboxOrientation()
+    {
+        hitboxHolder.localPosition = Vector3.zero;
+        hitBox.transform.localPosition = Vector3.zero;
+        hitboxHolder.localEulerAngles = Vector3.zero;
+        hitBox.transform.localEulerAngles = Vector3.zero;
+    }
+
+    public void MovePlayer(Vector3 movementVector)
+    {
+        if (!ChargeAttackProperties.rotationLockedDuringCharge || !isPlayerStateActive(PlayerState.Charge))
+            transform.LookAt(transform.position + movementVector);
+        transform.Translate(movementVector * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.World);
+        model.transform.Rotate(new Vector3(7f, 0f, 0f) * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.Self);
+    }
+
+    public void ReflectKnockbackTrajectory(Vector3 wallColliderNormal)
+    {
+        if (isPlayerStateActive(PlayerState.Hitstun) && masterLogic.isGameStateActive(GameStateId.Battle))
+            knockbackTrajectory = Vector3.Reflect(knockbackTrajectory, wallColliderNormal).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
     }
 
     private void ToggleHitbox(GameObject hitbox, bool isEnabled, bool alsoToggleVisual = true)
@@ -551,5 +593,10 @@ public static class VectorExtensions
         Vector3 combined = stickPos + origTrajectory.normalized;
         combined = combined.normalized;
         return combined * knockbackVelocity;
+    }
+
+    public static Vector3 SetY(this Vector3 origVector, float y)
+    {
+        return new Vector3(origVector.x, y, origVector.z);
     }
 }

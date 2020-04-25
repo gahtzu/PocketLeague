@@ -17,16 +17,4 @@ public class Attack : MonoBehaviour
     [Tooltip("How much EXTRA velocity is added when attacked at 100%")]
     [SerializeField]
     public float maxKnockbackVelocityAdditionFromPercent;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

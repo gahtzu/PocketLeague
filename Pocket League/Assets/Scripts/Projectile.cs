@@ -9,10 +9,9 @@ public class Projectile : MonoBehaviour
     [SerializeField]
     public float proejctileSpeed;
     [SerializeField]
-    public int reloadFrames;
+    public int rechargeFrames;
     [SerializeField]
     public int stunFrames;
     [SerializeField]
     public int lagFrames;
-
 }

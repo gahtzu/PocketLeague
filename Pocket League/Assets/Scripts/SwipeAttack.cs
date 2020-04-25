@@ -18,6 +18,6 @@ public class SwipeAttack : Attack
     public int hitboxLingerFrames;
     [SerializeField]
     public int attackLagFrames;
-
-
+    [SerializeField]
+    public int percentDealt;
 }

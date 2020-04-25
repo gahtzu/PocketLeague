@@ -11,14 +11,11 @@ public class Teleport : MonoBehaviour
     [SerializeField]
     public int framesToTeleport;
     [SerializeField]
-    public int framesToRecharge;
+    public int rechargeFrames;
     [SerializeField]
     public int lagFrames;
     [SerializeField]
     public bool invincibleWhileTeleporting;
     [SerializeField]
     public bool modelHiddenWhileTeleporting;
-
-
-
 }
