@@ -49,6 +49,7 @@ public class PocketPlayerController : MonoBehaviour
                   color_attack = Color.yellow,
                   color_hitstun = Color.magenta,
                   color_dead = new Color(.25f, .25f, .25f, 1f);
+    private int framesWithoutTeleport = 0;
 
     private Vector3 moveVector = new Vector3();
     private bool hasController = false;
@@ -62,6 +63,8 @@ public class PocketPlayerController : MonoBehaviour
         ChargeAttackProperties = GameObject.FindObjectOfType<ChargeAttack>();
         ProjectileProperties = GameObject.FindObjectOfType<Projectile>();
         TeleportProperties = GameObject.FindObjectOfType<Teleport>();
+
+        framesWithoutTeleport = TeleportProperties.framesToRecharge;
 
         gameStateMachine = masterLogic.gameStateMachine;
 
@@ -82,6 +85,7 @@ public class PocketPlayerController : MonoBehaviour
         stateMachine.Subscribe(SwipeAttack, PlayerState.SwipeAttack, true);
         stateMachine.Subscribe(Teleport, PlayerState.Teleport, true);
         stateMachine.Subscribe(Projectile, PlayerState.Projectile, true);
+        stateMachine.Subscribe(Actionable, PlayerState.Actionable, true);
 
         hasController = Input.GetJoystickNames().Length >= playerId;
     }
@@ -140,6 +144,7 @@ public class PocketPlayerController : MonoBehaviour
 
     void Teleport()
     {
+        framesWithoutTeleport = 0;
         SetBallColor(color_charge, isBlank: true);
         StopCoroutine("teleport");
         StartCoroutine("teleport");
@@ -150,6 +155,51 @@ public class PocketPlayerController : MonoBehaviour
         SetBallColor(color_charge, isBlank: true);
         StopCoroutine("projectile");
         StartCoroutine("projectile");
+    }
+
+    void Actionable()
+    {
+        ResetHitboxOrientation();
+        model.GetComponent<MeshRenderer>().enabled = true;
+        ToggleHitbox(transform.Find("hurtbox").gameObject, true, false);
+    }
+
+    private IEnumerator teleport()
+    {
+        for (int i = 0; i < TeleportProperties.startupFrames; i++)
+            yield return new WaitForEndOfFrame();
+
+        Vector3 startPos = transform.position;
+        Vector3 target = Vector3.MoveTowards(transform.position, transform.Find("VeryFront").transform.position, TeleportProperties.teleportDistance);
+
+        RaycastHit[] hits = Physics.RaycastAll(transform.position, (target - startPos).normalized, TeleportProperties.teleportDistance);
+        foreach (RaycastHit hit in hits)
+            if (hit.transform.tag == "Wall")
+                target = Vector3.MoveTowards(hit.point, Vector3.zero, 1f);
+
+        target = new Vector3(target.x, transform.position.y, target.z);
+
+        if (TeleportProperties.modelHiddenWhileTeleporting)
+            model.GetComponent<MeshRenderer>().enabled = false;
+        if (TeleportProperties.invincibleWhileTeleporting)
+            ToggleHitbox(transform.Find("hurtbox").gameObject, false, false);
+
+        for (int i = 0; i < TeleportProperties.framesToTeleport; i++)
+        {
+            float weight = (float)i / (float)TeleportProperties.framesToTeleport;
+            transform.position = Vector3.Lerp(startPos, target, weight);
+            yield return new WaitForEndOfFrame();
+        }
+
+        ToggleHitbox(transform.Find("hurtbox").gameObject, true, false);
+        model.GetComponent<MeshRenderer>().enabled = true;
+        transform.position = target;
+
+        for (int i = 0; i < TeleportProperties.lagFrames; i++)
+            yield return new WaitForEndOfFrame();
+
+
+        stateMachine.ChangeState(PlayerState.Actionable);
     }
 
 
@@ -175,7 +225,7 @@ public class PocketPlayerController : MonoBehaviour
         //relative angle between players
         Vector3 playerAngleTrajectory = (transform.position - otherPlayer.transform.position).normalized;
 
-        knockbackTrajectory = (attackAngleTrajectory.normalized * knockbackVelocity *-1f).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
+        knockbackTrajectory = (attackAngleTrajectory.normalized * knockbackVelocity * -1f).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
 
         for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
         {
@@ -193,7 +243,7 @@ public class PocketPlayerController : MonoBehaviour
         {
             float weight = (float)chargeCounter / (float)ChargeAttackProperties.maxChargeFrames;
             SetBallColor(new Color(weight, 0f, 0f) * 1.5f, false, weight * 1.5f);
-           
+
             if (chargeCounter > ChargeAttackProperties.minChargeFrames + 2)
                 line.SetActive(true);
             if (chargeCounter > ChargeAttackProperties.maxChargeFrames)
@@ -262,7 +312,6 @@ public class PocketPlayerController : MonoBehaviour
             yield return new WaitForEndOfFrame();
 
         ToggleHitbox(hitBox, true, true);
-        ResetHitboxOrientation();
 
 
         if (SwipeAttackProperties.startingYRotationOffset < 0 && !isSwipingLeft)
@@ -290,7 +339,10 @@ public class PocketPlayerController : MonoBehaviour
 
 
         ToggleHitbox(hitBox, false, true);
-        ResetHitboxOrientation();
+
+        for (int i = 0; i < SwipeAttackProperties.attackLagFrames; i++)
+            yield return new WaitForEndOfFrame();
+
 
         stateMachine.ChangeState(PlayerState.Actionable);
 
@@ -306,7 +358,7 @@ public class PocketPlayerController : MonoBehaviour
         moveVector = new Vector3(JoystickPosition.x, 0f, JoystickPosition.y).normalized;
 
         //slide along the wall if near
-        RaycastHit[] hits = (Physics.RaycastAll(transform.position, moveVector, .65f));
+        RaycastHit[] hits = (Physics.RaycastAll(transform.position, moveVector, .8f));
         foreach (RaycastHit hit in hits)
             if (hit.transform.tag == "Wall")
             {
@@ -326,19 +378,28 @@ public class PocketPlayerController : MonoBehaviour
         if (isPlayerStateActive(PlayerState.Run) || isPlayerStateActive(PlayerState.Charge))
             MovePlayer(moveVector);
 
-        if (ButtonPressed(Button.B) && (masterLogic.isGameStateActive(GameStateId.Battle)))
-            stateMachine.ChangeState(PlayerState.Charge); //start attack
+        if (masterLogic.isGameStateActive(GameStateId.Battle))
+        {
+            if (ButtonPressed(Button.B))
+            {
+                stateMachine.ChangeState(PlayerState.Charge); //start attack
+            }
+            else if (ButtonPressed(Button.A))
+            {
+                isSwipingLeft = false;
+                stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
+            }
+            else if (ButtonPressed(Button.X))
+            {
+                isSwipingLeft = true;
+                stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
+            }
+            else if (ButtonPressed(Button.RightBumper) && canTeleport())
+            {
+                stateMachine.ChangeState(PlayerState.Teleport);
+            }
+        }
 
-        else if (ButtonPressed(Button.A) && (masterLogic.isGameStateActive(GameStateId.Battle)))
-        {
-            isSwipingLeft = false;
-            stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
-        }
-        else if (ButtonPressed(Button.X) && (masterLogic.isGameStateActive(GameStateId.Battle)))
-        {
-            isSwipingLeft = true;
-            stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
-        }
         if (ButtonPressed(Button.Start))
             gameStateMachine.ChangeState(GameStateId.Battle); //skip the countdown
         if (ButtonPressed(Button.Select))
@@ -351,6 +412,14 @@ public class PocketPlayerController : MonoBehaviour
         }
         else { startCounter = 0; }
 
+        if (!isPlayerStateActive(PlayerState.Teleport))
+            framesWithoutTeleport++;
+
+    }
+
+    public bool canTeleport()
+    {
+        return framesWithoutTeleport >= TeleportProperties.framesToRecharge;
     }
 
     public void GetInputs()

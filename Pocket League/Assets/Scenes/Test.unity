@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.4424273, g: 0.49149096, b: 0.5713473, a: 1}
+  m_IndirectSpecularColor: {r: 0.44242752, g: 0.49149156, b: 0.57134783, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -388,6 +388,7 @@ MonoBehaviour:
   framesToSwipe: 18
   startupFrames: 3
   hitboxLingerFrames: 5
+  attackLagFrames: 8
 --- !u!114 &1384694425
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -400,10 +401,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 71718fa8d25afaf4e9a4fe17bd454f04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startupFrames: 5
-  teleportDistance: 3
-  framesToTeleport: 5
-  invincibleWhileTeleporting: 1
+  startupFrames: 0
+  teleportDistance: 7
+  framesToTeleport: 12
+  framesToRecharge: 200
+  lagFrames: 8
+  invincibleWhileTeleporting: 0
+  modelHiddenWhileTeleporting: 0
 --- !u!4 &1384694426
 Transform:
   m_ObjectHideFlags: 0
@@ -781,17 +785,17 @@ PrefabInstance:
     - target: {fileID: 7295994299670857225, guid: 6177ecc18fa93f54aa312c7fc6cda6c9,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -6.8217564
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7295994299670857225, guid: 6177ecc18fa93f54aa312c7fc6cda6c9,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7295994299670857225, guid: 6177ecc18fa93f54aa312c7fc6cda6c9,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1.4076009
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7295994299670857225, guid: 6177ecc18fa93f54aa312c7fc6cda6c9,
         type: 3}

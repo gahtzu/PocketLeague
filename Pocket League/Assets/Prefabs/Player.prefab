@@ -1,5 +1,35 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &309247952
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 309247953}
+  m_Layer: 0
+  m_Name: VeryFront
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &309247953
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 309247952}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 50}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 7295994299670857225}
+  m_RootOrder: 7
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3453968830818487083
 GameObject:
   m_ObjectHideFlags: 0
@@ -425,6 +455,7 @@ Transform:
   - {fileID: 7295994298466374547}
   - {fileID: 7295994300084989635}
   - {fileID: 7987144539475512064}
+  - {fileID: 309247953}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -451,6 +482,7 @@ MonoBehaviour:
   otherPlayer: {fileID: 0}
   chargeCounter: 0
   knockbackTrajectory: {x: 0, y: 0, z: 0}
+  isSwipingLeft: 0
   hitBox: {fileID: 7295994300046253414}
   model: {fileID: 7295994299497602960}
   line: {fileID: 0}

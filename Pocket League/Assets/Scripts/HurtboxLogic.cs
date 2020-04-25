@@ -19,7 +19,6 @@ public class HurtboxLogic : MonoBehaviour
         {
             if (collider.tag == "Wall")
                 pocketController.ReflectKnockbackTrajectory(collider.transform.position.normalized);
-                
             else if (collider.tag == "Hole" && masterLogic.isGameStateActive(GameStateId.Battle))
                 masterLogic.KillPlayer(pocketController, collider.gameObject);
         }

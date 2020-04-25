@@ -16,6 +16,8 @@ public class SwipeAttack : Attack
     public int startupFrames;
     [SerializeField]
     public int hitboxLingerFrames;
+    [SerializeField]
+    public int attackLagFrames;
 
 
 }
