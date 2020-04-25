@@ -9,6 +9,7 @@ TagManager:
   - Wall
   - Hole
   - TestSphere
+  - Table
   layers:
   - Default
   - TransparentFX

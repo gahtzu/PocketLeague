@@ -84,6 +84,9 @@ public class MasterLogic : MonoBehaviour
     [Tooltip("How many pixels does the percentages string offset from the center of the player?")]
     [SerializeField]
     public float percentCharacterOffsetX;
+    [Tooltip("1=smallest, 3=biggest")]
+    [SerializeField]
+    public int tableSize;
 
     [Header("Prefabs")]
     public GameObject playerObj;
@@ -118,6 +121,10 @@ public class MasterLogic : MonoBehaviour
         goText = GameObject.Find("GoText").GetComponent<Text>();
         SetGoTextProperties(1, "", goText.color);
         spawnPositions.AddRange(new List<Vector3>() { new Vector3(-10f, .5f, 0f), new Vector3(10f, .5f, 0f) });
+
+        foreach (GameObject go in GameObject.FindGameObjectsWithTag("Table"))
+            go.SetActive(go.name.Contains(tableSize.ToString()));
+
         mainCamera = GameObject.Find("Main Camera").GetComponent<Camera>();
 
         gameStateMachine.Subscribe(Countdown, GameStateId.Countdown, true);
