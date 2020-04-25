@@ -395,10 +395,10 @@ public class PocketPlayerController : MonoBehaviour
         if (TeleportProperties.invincibleWhileTeleporting)
             ToggleHitbox(hurtBox, false, false);
 
+        float inc = TeleportProperties.teleportDistance / TeleportProperties.framesToTeleport;
         for (int i = 0; i < TeleportProperties.framesToTeleport; i++)
         {
-            float weight = (float)i / (float)TeleportProperties.framesToTeleport;
-            transform.position = Vector3.Lerp(startPos, target, weight);
+            MovePlayer((target - startPos).normalized * inc);
             yield return new WaitForEndOfFrame();
         }
         transform.position = target;
@@ -638,7 +638,7 @@ public class PocketPlayerController : MonoBehaviour
             transform.LookAt(transform.position + movementVector);
         transform.Translate(movementVector * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.World);
         if (movementVector != Vector3.zero)
-            model.transform.Rotate(new Vector3(7f, 0f, 0f) * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.Self);
+            model.transform.Rotate(new Vector3(7f, 0f, 0f) * (isPlayerStateActive(PlayerState.Teleport) ? 1f : 1f) * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.Self);
     }
 
     public void ReflectKnockbackTrajectory(Vector3 wallColliderNormal)
