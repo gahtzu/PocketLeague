@@ -229,10 +229,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   projectileFab: {fileID: 8771172799690443641, guid: 200330022f733ac42a2f7ff8cc410dc9,
     type: 3}
-  proejctileSpeed: 0.1
-  rechargeFrames: 200
+  projectileSpeed: 0.115
+  percentDealt: 15
+  rechargeFrames: 180
+  projectileLifeFrames: 180
+  stunSpeed: 0
   stunFrames: 60
   lagFrames: 10
+  startupFrames: 12
+  spawnOffset: {x: 0, y: 0, z: 1}
 --- !u!1 &463940161
 GameObject:
   m_ObjectHideFlags: 0
@@ -623,10 +628,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   projectileFab: {fileID: 8771172799690443641, guid: ea471d3dbfc02c040b9c1b7c9188f52b,
     type: 3}
-  proejctileSpeed: 0.19
+  projectileSpeed: 0.2
+  percentDealt: 5
   rechargeFrames: 60
-  stunFrames: 30
+  projectileLifeFrames: 60
+  stunSpeed: 0.01
+  stunFrames: 20
   lagFrames: 10
+  startupFrames: 0
+  spawnOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &1384694421
 GameObject:
   m_ObjectHideFlags: 0

@@ -30,6 +30,8 @@ public class PocketPlayerController : MonoBehaviour
     public GameObject otherPlayer;
     [HideInInspector]
     public PocketPlayerController otherPlayerController;
+    [HideInInspector]
+    public Vector3 currProjectileDir;
 
     [HideInInspector]
     public int chargeCounter = 0;
@@ -84,7 +86,8 @@ public class PocketPlayerController : MonoBehaviour
 
         stateMachine.Subscribe(BeginCharge, PlayerState.Charge, true);
         stateMachine.Subscribe(ChargeAttackRecovery, PlayerState.ChargeAttackRecovery, true);
-        stateMachine.Subscribe(GetHit, PlayerState.Hitstun, true);
+        stateMachine.Subscribe(GetHitByAttack, PlayerState.Hitstun, true);
+        stateMachine.Subscribe(GetHitByProjectile, PlayerState.BulletHitstun, true);
         stateMachine.Subscribe(Idle, PlayerState.Idle, true);
         stateMachine.Subscribe(Run, PlayerState.Run, true);
         stateMachine.Subscribe(Dead, PlayerState.Dead, true);
@@ -132,7 +135,17 @@ public class PocketPlayerController : MonoBehaviour
         StartCoroutine("chargeAttackRecovery");
     }
 
-    void GetHit()
+    void GetHitByAttack()
+    {
+        GetHit(false);
+    }
+
+    void GetHitByProjectile()
+    {
+        GetHit(true);
+    }
+
+    void GetHit(bool hitByProjectile)
     {
         SetBallColor(color_hitstun);
         StopCoroutine("chargeAttack");
@@ -141,14 +154,23 @@ public class PocketPlayerController : MonoBehaviour
         StopCoroutine("projectile");
         StopCoroutine("getHitByChargeAttack");
         StopCoroutine("getHitBySwipeAttack");
+        StopCoroutine("getHitByProjectile");
 
-        switch (otherPlayerController.stateMachine.GetCurrentStateEnum())
+        if (hitByProjectile)
         {
-            case PlayerState.ChargeAttackRecovery: StartCoroutine("getHitByChargeAttack"); break;
-            case PlayerState.SwipeAttack: StartCoroutine("getHitBySwipeAttack"); break;
-            default: Debug.Log("NOT SURE WHAT KIND OF ATTACK WE GOT HIT BY!"); break;
+            StartCoroutine("getHitByProjectile");
+        }
+        else
+        {
+            switch (otherPlayerController.stateMachine.GetCurrentStateEnum())
+            {
+                case PlayerState.ChargeAttackRecovery: StartCoroutine("getHitByChargeAttack"); break;
+                case PlayerState.SwipeAttack: StartCoroutine("getHitBySwipeAttack"); break;
+                default: Debug.Log("NOT SURE WHAT KIND OF ATTACK WE GOT HIT BY!"); break;
+            }
         }
     }
+
 
     void SwipeAttack()
     {
@@ -167,6 +189,7 @@ public class PocketPlayerController : MonoBehaviour
 
     void Projectile()
     {
+        framesWithoutProjectile = 0;
         SetBallColor(color_charge, isBlank: true);
         StopCoroutine("projectile");
         StartCoroutine("projectile");
@@ -318,8 +341,8 @@ public class PocketPlayerController : MonoBehaviour
         playerDetails.percent += SwipeAttackProperties.percentDealt;
 
         //hitstun length, and velocity (based on percent and charge)
-        float hitstunLength = ScaleMultiplier(ChargeAttackProperties.minHitstunLength, ChargeAttackProperties.maxHitstunLength, _percentWeight);
-        knockbackVelocity = ScaleMultiplier(ChargeAttackProperties.minKnockbackVelocityAdditionFromPercent, ChargeAttackProperties.maxKnockbackVelocityAdditionFromPercent, _percentWeight);
+        float hitstunLength = ScaleMultiplier(SwipeAttackProperties.minHitstunLength, SwipeAttackProperties.maxHitstunLength, _percentWeight);
+        knockbackVelocity = ScaleMultiplier(SwipeAttackProperties.minKnockbackVelocityAdditionFromPercent, SwipeAttackProperties.maxKnockbackVelocityAdditionFromPercent, _percentWeight);
 
         //direction the player is attacking:
         //Vector3 attackAngleTrajectory = (otherPlayer.transform.position - otherPlayer.transform.Find("Front").position).normalized;
@@ -368,6 +391,51 @@ public class PocketPlayerController : MonoBehaviour
 
         for (int i = 0; i < TeleportProperties.lagFrames; i++)
             yield return new WaitForEndOfFrame();
+
+        stateMachine.ChangeState(PlayerState.Actionable);
+    }
+
+    private IEnumerator projectile()
+    {
+        for (int i = 0; i < ProjectileProperties.startupFrames; i++)
+            yield return new WaitForEndOfFrame();
+
+        GameObject _projectile = GameObject.Instantiate(ProjectileProperties.projectileFab);
+        _projectile.name = "Projectile (Player " + playerDetails.id + ")";
+        _projectile.transform.parent = transform;
+        _projectile.transform.localEulerAngles = Vector3.zero;
+        _projectile.transform.localPosition = ProjectileProperties.spawnOffset;
+        _projectile.transform.parent = null;
+
+        Bullet bullet = _projectile.GetComponent<Bullet>();
+        bullet.speed = ProjectileProperties.projectileSpeed;
+        bullet.dir = (transform.Find("Front").position - transform.position).normalized;
+        bullet.playerOwner = gameObject;
+        bullet.framesProjectileIsAlive = ProjectileProperties.projectileLifeFrames;
+
+        for (int i = 0; i < ProjectileProperties.lagFrames; i++)
+            yield return new WaitForEndOfFrame();
+
+        stateMachine.ChangeState(PlayerState.Actionable);
+    }
+
+    private IEnumerator getHitByProjectile()
+    {
+        //add percent from being hit
+        playerDetails.percent += otherPlayerController.ProjectileProperties.percentDealt;
+
+        //hitstun length, and velocity (based on percent and charge)
+        float hitstunLength = otherPlayerController.ProjectileProperties.stunFrames;
+        knockbackVelocity = otherPlayerController.ProjectileProperties.stunSpeed;
+
+        Vector3 dir = currProjectileDir.SetY(0f).normalized;
+        knockbackTrajectory = (dir * knockbackVelocity).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
+
+        for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
+        {
+            MovePlayer(knockbackTrajectory);
+            yield return new WaitForEndOfFrame();
+        }
 
         stateMachine.ChangeState(PlayerState.Actionable);
     }
@@ -423,7 +491,7 @@ public class PocketPlayerController : MonoBehaviour
             }
             else if (ButtonPressed(Button.Y) && CanShootProjectile())
             {
-                //stateMachine.ChangeState(PlayerState.Projectile);
+                stateMachine.ChangeState(PlayerState.Projectile);
             }
         }
 
@@ -530,7 +598,8 @@ public class PocketPlayerController : MonoBehaviour
         if (!ChargeAttackProperties.rotationLockedDuringCharge || !isPlayerStateActive(PlayerState.Charge))
             transform.LookAt(transform.position + movementVector);
         transform.Translate(movementVector * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.World);
-        model.transform.Rotate(new Vector3(7f, 0f, 0f) * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.Self);
+        if (movementVector != Vector3.zero)
+            model.transform.Rotate(new Vector3(7f, 0f, 0f) * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.Self);
     }
 
     public void ReflectKnockbackTrajectory(Vector3 wallColliderNormal)
@@ -589,10 +658,15 @@ public static class VectorExtensions
 {
     public static Vector3 ApplyDirectionalInfluence(this Vector3 origTrajectory, Vector2 JoystickPosition, float knockbackVelocity, float DirectionalInfluenceMultiplier)
     {
-        Vector3 stickPos = new Vector3(JoystickPosition.x, 0f, JoystickPosition.y).normalized * DirectionalInfluenceMultiplier;
-        Vector3 combined = stickPos + origTrajectory.normalized;
-        combined = combined.normalized;
-        return combined * knockbackVelocity;
+        if (origTrajectory != Vector3.zero)
+        {
+            Vector3 stickPos = new Vector3(JoystickPosition.x, 0f, JoystickPosition.y).normalized * DirectionalInfluenceMultiplier;
+            Vector3 combined = stickPos + origTrajectory.normalized;
+            combined = combined.normalized;
+            return combined * knockbackVelocity;
+        }
+
+        return origTrajectory;
     }
 
     public static Vector3 SetY(this Vector3 origVector, float y)
