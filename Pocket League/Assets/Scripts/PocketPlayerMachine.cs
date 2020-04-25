@@ -9,7 +9,7 @@ public class PocketPlayerMachine : StateMachine
     {
         State idle = CreateState(PlayerState.Idle, LegalTransitions(new List<Enum>() { PlayerState.Run, PlayerState.Projectile, PlayerState.Hitstun, PlayerState.Charge, PlayerState.Dead, PlayerState.Idle }));
         State run = CreateState(PlayerState.Run, LegalTransitions(new List<Enum>() { PlayerState.Charge, PlayerState.Projectile, PlayerState.Hitstun, PlayerState.Idle, PlayerState.Dead }));
-        State charge = CreateState(PlayerState.Charge, LegalTransitions(new List<Enum>() { PlayerState.AttackRecovery, PlayerState.Projectile, PlayerState.Hitstun, PlayerState.Dead }));
+        State charge = CreateState(PlayerState.Charge, LegalTransitions(new List<Enum>() { PlayerState.AttackRecovery, PlayerState.Projectile, PlayerState.Hitstun, PlayerState.Dead, PlayerState.Actionable }));
         State attackRecovery = CreateState(PlayerState.AttackRecovery, LegalTransitions(new List<Enum>() { PlayerState.Actionable, PlayerState.Hitstun, PlayerState.Dead }));
         State projectile = CreateState(PlayerState.Projectile, LegalTransitions(new List<Enum>() { PlayerState.Idle, PlayerState.Hitstun, PlayerState.Charge, PlayerState.Dead }));
         State hitstun = CreateState(PlayerState.Hitstun, LegalTransitions(new List<Enum>() { PlayerState.Actionable, PlayerState.Tech, PlayerState.Hitstun, PlayerState.Dead }));

@@ -32,7 +32,7 @@ public class PocketPlayerController : MonoBehaviour
     private List<Button> ButtonList_OnKey = new List<Button>();
 
     [HideInInspector]
-    public GameObject hitBox, model;
+    public GameObject hitBox, model, line;
 
     private Color color_idle = Color.white,
                   color_run = Color.white,
@@ -51,10 +51,10 @@ public class PocketPlayerController : MonoBehaviour
         masterLogic = GameObject.FindObjectOfType<MasterLogic>();
         gameStateMachine = masterLogic.gameStateMachine;
 
-        model = transform.Find("PlayerModel"+playerId).gameObject;
+        model = transform.Find("PlayerModel" + playerId).gameObject;
         model.SetActive(true);
         SetBallColor(color_idle, isBlank: true);
-
+        line = transform.Find("Line").gameObject;
         hitBox = transform.Find("hitbox").gameObject;
         hitBox.transform.localScale = masterLogic.smallHitboxScale;
         hitBox.transform.localPosition += new Vector3(0f, 0f, masterLogic.smallHitboxOffset);
@@ -76,6 +76,7 @@ public class PocketPlayerController : MonoBehaviour
 
     void Idle()
     {
+        line.SetActive(false);
         SetBallColor(color_idle, isBlank: true);
         ToggleHitbox(hitBox, false);
     }
@@ -95,6 +96,7 @@ public class PocketPlayerController : MonoBehaviour
 
     void AttackRecovery()
     {
+        line.SetActive(false);
         SetBallColor(color_attack, isBlank: true);
         StopCoroutine("attackRecovery");
         StartCoroutine("attackRecovery");
@@ -140,7 +142,11 @@ public class PocketPlayerController : MonoBehaviour
 
         stateMachine.ChangeState(PlayerState.Actionable);
     }
-
+    private bool hit = false;
+    public void HitOpponent()
+    {
+        hit = true;
+    }
     private IEnumerator chargeAttack()
     {
         chargeCounter = 0;
@@ -149,10 +155,19 @@ public class PocketPlayerController : MonoBehaviour
             float weight = (float)chargeCounter / (float)masterLogic.maxChargeFrames;
             SetBallColor(new Color(weight, 0f, 0f) * 1.5f, false, weight * 1.5f);
 
-            if (chargeCounter > masterLogic.maxChargeFrames)
+            if (chargeCounter > masterLogic.minChargeFrames + 2)
+                line.SetActive(true);
+            if (ButtonPressed(Button.RightBumper))
+            {
+                stateMachine.ChangeState(PlayerState.Actionable);
+                chargeCounter = 0;
+            }
+            else if (chargeCounter > masterLogic.maxChargeFrames)
             {   //held for maximum charge
                 chargeCounter = masterLogic.maxChargeFrames;
                 stateMachine.ChangeState(PlayerState.AttackRecovery);
+
+                //chargeCounter = masterLogic.maxChargeFrames;
             }
             else if (chargeCounter >= masterLogic.minChargeFrames && !ButtonList_OnKey.Contains(Button.X))
             {   //we let go of charge
@@ -180,8 +195,16 @@ public class PocketPlayerController : MonoBehaviour
 
         for (float i = 0; i < framesToRecover; i++)
         {
+
             if (i > hitboxActivationFrames)
+            {
                 ToggleHitbox(hitBox, false);
+                if (hit)
+                {
+                    hit = false;
+                    break;
+                }
+            }
             if (isPlayerStateActive(PlayerState.AttackRecovery))
                 yield return new WaitForEndOfFrame();
         }
@@ -190,6 +213,8 @@ public class PocketPlayerController : MonoBehaviour
 
         if (isPlayerStateActive(PlayerState.AttackRecovery))
             stateMachine.ChangeState(PlayerState.Actionable);
+
+        chargeCounter = 0;
     }
 
     private void LateUpdate()
@@ -218,7 +243,7 @@ public class PocketPlayerController : MonoBehaviour
                 stateMachine.ChangeState(PlayerState.Run);
 
         //allow movement via joystick if we are running
-        if (isPlayerStateActive(PlayerState.Run))
+        if (isPlayerStateActive(PlayerState.Run) || isPlayerStateActive(PlayerState.Charge))
             MovePlayer(moveVector);
 
         if (ButtonPressed(Button.X) && (masterLogic.isGameStateActive(GameStateId.Battle)))
@@ -271,9 +296,10 @@ public class PocketPlayerController : MonoBehaviour
 
     public void MovePlayer(Vector3 movementVector)
     {
-        transform.LookAt(transform.position + movementVector);
-        transform.Translate(movementVector, Space.World);
-        model.transform.Rotate(new Vector3(7f, 0f, 0f), Space.Self);
+        if (!isPlayerStateActive(PlayerState.Charge))
+            transform.LookAt(transform.position + movementVector);
+        transform.Translate(movementVector * (isPlayerStateActive(PlayerState.Charge) ? masterLogic.speedMultiplierWhileCharging : 1f), Space.World);
+        model.transform.Rotate(new Vector3(7f, 0f, 0f) * (isPlayerStateActive(PlayerState.Charge) ? masterLogic.speedMultiplierWhileCharging : 1f), Space.Self);
     }
 
     public void ReflectKnockbackTrajectory(Vector3 wallColliderNormal)

@@ -8,7 +8,8 @@ public class HitboxLogic : MonoBehaviour
     {
         if (other.tag == "Hurtbox" && other.transform.parent != transform.parent)
         {
-			  other.transform.parent.GetComponent<PocketPlayerController>().stateMachine.ChangeState(PlayerState.Hitstun);
+            other.transform.parent.GetComponent<PocketPlayerController>().stateMachine.ChangeState(PlayerState.Hitstun);
+            transform.parent.GetComponent<PocketPlayerController>().HitOpponent();
         }
     }
 }

@@ -34,6 +34,9 @@ public class MasterLogic : MonoBehaviour
     [Tooltip("When applying DI to the knockback angle, how much should it be considered?\n1 = you can have a 45 degree influence.\n.5 = you can have half of 45 degree influence, etc.")]
     [SerializeField]
     public float DirectionalInfluenceMultiplier;
+    [Tooltip("SpeedMultiplierWhileCharging")]
+    [SerializeField]
+    public float speedMultiplierWhileCharging;
     [Header("Hitbox/Attack")]
     [Tooltip("How big is your hitbox when attacking (NON-CHARGED)")]
     [SerializeField]
