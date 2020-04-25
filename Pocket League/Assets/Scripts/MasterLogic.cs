@@ -34,21 +34,41 @@ public class MasterLogic : MonoBehaviour
 
     [Header("Player 1 Attacks")]
     [SerializeField]
+    public Button projectile_btn_P1;
+    [SerializeField]
     public Projectile projectile_P1;
+    [SerializeField]
+    public Button teleport_btn_P1;
     [SerializeField]
     public Teleport teleport_P1;
     [SerializeField]
+    public Button swipeAttack_btn_L_P1;
+    [SerializeField]
+    public Button swipeAttack_btn_R_P1;
+    [SerializeField]
     public SwipeAttack swipeAttack_P1;
+    [SerializeField]
+    public Button chargeAttack_btn_P1;
     [SerializeField]
     public ChargeAttack chargeAttack_P1;
 
     [Header("Player 2 Attacks")]
     [SerializeField]
+    public Button projectile_btn_P2;
+    [SerializeField]
     public Projectile projectile_P2;
+    [SerializeField]
+    public Button teleport_btn_P2;
     [SerializeField]
     public Teleport teleport_P2;
     [SerializeField]
+    public Button swipeAttack_btn_L_P2;
+    [SerializeField]
+    public Button swipeAttack_btn_R_P2;
+    [SerializeField]
     public SwipeAttack swipeAttack_P2;
+    [SerializeField]
+    public Button chargeAttack_btn_P2;
     [SerializeField]
     public ChargeAttack chargeAttack_P2;
 

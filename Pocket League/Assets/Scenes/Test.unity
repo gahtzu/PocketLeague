@@ -229,10 +229,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   projectileFab: {fileID: 8771172799690443641, guid: 200330022f733ac42a2f7ff8cc410dc9,
     type: 3}
-  projectileSpeed: 0.115
+  projectileSpeed: 0.095
   percentDealt: 15
-  rechargeFrames: 180
-  projectileLifeFrames: 180
+  rechargeFrames: 240
+  projectileLifeFrames: 240
   stunSpeed: 0
   stunFrames: 60
   lagFrames: 10
@@ -299,7 +299,7 @@ GameObject:
   - component: {fileID: 483257309}
   - component: {fileID: 483257310}
   m_Layer: 0
-  m_Name: SwipeAttack
+  m_Name: SwipeAttack-KnockbackDirUsingPaddles
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -331,8 +331,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4dc0adc350d3754e80d1a11979e6739, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  minHitstunLength: 60
-  maxHitstunLength: 220
+  minHitstunLength: 40
+  maxHitstunLength: 180
   minKnockbackVelocityAdditionFromPercent: 0.15
   maxKnockbackVelocityAdditionFromPercent: 0.3
   hitBoxScale: {x: 0.5, y: 0.5, z: 3}
@@ -343,6 +343,7 @@ MonoBehaviour:
   hitboxLingerFrames: 5
   attackLagFrames: 8
   percentDealt: 14
+  usePaddleKnockbackDir: 1
 --- !u!1 &511886321
 GameObject:
   m_ObjectHideFlags: 0
@@ -672,6 +673,7 @@ Transform:
   - {fileID: 1407192122}
   - {fileID: 329027794}
   - {fileID: 483257309}
+  - {fileID: 1761680005}
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -772,16 +774,26 @@ MonoBehaviour:
   stockCount: 4
   ResetPercentOnKill: 1
   percentCharacterOffsetX: -15
-  tableSize: 2
+  tableSize: 3
   playerObj: {fileID: 7295994299670857231, guid: 6177ecc18fa93f54aa312c7fc6cda6c9,
     type: 3}
+  projectile_btn_P1: 3
   projectile_P1: {fileID: 442410078}
+  teleport_btn_P1: 5
   teleport_P1: {fileID: 463940163}
+  swipeAttack_btn_L_P1: 2
+  swipeAttack_btn_R_P1: 1
   swipeAttack_P1: {fileID: 483257310}
+  chargeAttack_btn_P1: 0
   chargeAttack_P1: {fileID: 511886323}
+  projectile_btn_P2: 3
   projectile_P2: {fileID: 442410078}
+  teleport_btn_P2: 5
   teleport_P2: {fileID: 463940163}
+  swipeAttack_btn_L_P2: 2
+  swipeAttack_btn_R_P2: 1
   swipeAttack_P2: {fileID: 483257310}
+  chargeAttack_btn_P2: 0
   chargeAttack_P2: {fileID: 511886323}
   viewDebug: 0
 --- !u!4 &1585636838
@@ -798,6 +810,62 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1761680004
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1761680005}
+  - component: {fileID: 1761680006}
+  m_Layer: 0
+  m_Name: SwipeAttack-KnockbackDirFromPlayerAngles
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1761680005
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1761680004}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1384694426}
+  m_RootOrder: 8
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1761680006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1761680004}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4dc0adc350d3754e80d1a11979e6739, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  minHitstunLength: 40
+  maxHitstunLength: 180
+  minKnockbackVelocityAdditionFromPercent: 0.15
+  maxKnockbackVelocityAdditionFromPercent: 0.3
+  hitBoxScale: {x: 0.5, y: 0.5, z: 3}
+  startingYRotationOffset: 60
+  startingOffset: {x: 0, y: 0, z: 1.5}
+  framesToSwipe: 18
+  startupFrames: 3
+  hitboxLingerFrames: 5
+  attackLagFrames: 8
+  percentDealt: 14
+  usePaddleKnockbackDir: 0
 --- !u!1 &1981704670
 GameObject:
   m_ObjectHideFlags: 0

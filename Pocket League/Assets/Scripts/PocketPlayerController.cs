@@ -221,7 +221,7 @@ public class PocketPlayerController : MonoBehaviour
                 chargeCounter = ChargeAttackProperties.maxChargeFrames;
                 stateMachine.ChangeState(PlayerState.ChargeAttackRecovery);
             }
-            else if (chargeCounter >= ChargeAttackProperties.minChargeFrames && !ButtonList_OnKey.Contains(Button.B))
+            else if (chargeCounter >= ChargeAttackProperties.minChargeFrames && !ButtonList_OnKey.Contains(GetButtonMappingForMove("ChargeAttack")))
             {   //we let go of charge
                 stateMachine.ChangeState(PlayerState.ChargeAttackRecovery);
             }
@@ -347,7 +347,12 @@ public class PocketPlayerController : MonoBehaviour
         //direction the player is attacking:
         //Vector3 attackAngleTrajectory = (otherPlayer.transform.position - otherPlayer.transform.Find("Front").position).normalized;
         //relative angle between players, rotated some depending on swipe direction
-        Vector3 playerAngleTrajectory = Quaternion.AngleAxis(otherPlayerController.isSwipingRight ? 30f : -30f, Vector3.up) * (otherPlayer.transform.position - transform.position).normalized;
+        Vector3 playerAngleTrajectory = Vector3.zero;
+
+
+        playerAngleTrajectory = (otherPlayer.transform.position - transform.position).normalized;
+        if (SwipeAttackProperties.usePaddleKnockbackDir)
+            playerAngleTrajectory = Quaternion.AngleAxis(otherPlayerController.isSwipingRight ? 20f : -20f, Vector3.up) * playerAngleTrajectory;
 
         knockbackTrajectory = (playerAngleTrajectory.SetY(0f).normalized * knockbackVelocity * -1f).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
 
@@ -471,25 +476,25 @@ public class PocketPlayerController : MonoBehaviour
 
         if (masterLogic.isGameStateActive(GameStateId.Battle))
         {
-            if (ButtonPressed(Button.B))
+            if (ButtonPressed(GetButtonMappingForMove("ChargeAttack")))
             {
                 stateMachine.ChangeState(PlayerState.Charge); //start attack
             }
-            else if (ButtonPressed(Button.A))
+            else if (ButtonPressed(GetButtonMappingForMove("SwipeAttackLeft")))
             {
                 isSwipingRight = false;
                 stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
             }
-            else if (ButtonPressed(Button.X))
+            else if (ButtonPressed(GetButtonMappingForMove("SwipeAttackRight")))
             {
                 isSwipingRight = true;
                 stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
             }
-            else if (ButtonPressed(Button.RightBumper) && CanTeleport())
+            else if (ButtonPressed(GetButtonMappingForMove("Teleport")) && CanTeleport())
             {
                 stateMachine.ChangeState(PlayerState.Teleport);
             }
-            else if (ButtonPressed(Button.Y) && CanShootProjectile())
+            else if (ButtonPressed(GetButtonMappingForMove("Projectile")) && CanShootProjectile())
             {
                 stateMachine.ChangeState(PlayerState.Projectile);
             }
@@ -638,6 +643,19 @@ public class PocketPlayerController : MonoBehaviour
         {
             model.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
             model.GetComponent<Renderer>().material.SetColor("_EmissionColor", Color.Lerp(new Color(0f, 0f, 0f, 0f), c, influence));
+        }
+    }
+
+    public Button GetButtonMappingForMove(string moveType)
+    {
+        switch (moveType)
+            {
+                case "Projectile": return playerDetails.id == 1 ? masterLogic.projectile_btn_P1 : masterLogic.projectile_btn_P2;
+                case "Teleport": return playerDetails.id == 1 ? masterLogic.teleport_btn_P1 : masterLogic.teleport_btn_P2;
+                case "ChargeAttack": return playerDetails.id == 1 ? masterLogic.chargeAttack_btn_P1 : masterLogic.chargeAttack_btn_P2;
+                case "SwipeAttackLeft": return playerDetails.id == 1 ? masterLogic.swipeAttack_btn_L_P1 : masterLogic.swipeAttack_btn_L_P2;
+                case "SwipeAttackRight": return playerDetails.id == 1 ? masterLogic.swipeAttack_btn_R_P1 : masterLogic.swipeAttack_btn_R_P2;
+            default: return Button.Start;
         }
     }
 }

@@ -20,4 +20,7 @@ public class SwipeAttack : Attack
     public int attackLagFrames;
     [SerializeField]
     public int percentDealt;
+    [SerializeField]
+    public bool usePaddleKnockbackDir;
+
 }
