@@ -331,8 +331,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4dc0adc350d3754e80d1a11979e6739, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  minHitstunLength: 40
-  maxHitstunLength: 180
+  minHitstunLength: 15
+  maxHitstunLength: 150
   minKnockbackVelocityAdditionFromPercent: 0.15
   maxKnockbackVelocityAdditionFromPercent: 0.23
   hitBoxScale: {x: 0.5, y: 0.5, z: 3}
@@ -459,7 +459,6 @@ MonoBehaviour:
   m_Material: {fileID: 0}
   m_Color: {r: 0.19607842, g: 0.91242415, b: 1, a: 1}
   m_RaycastTarget: 1
-  m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -789,9 +788,9 @@ MonoBehaviour:
   chargeAttack_btn_P1: 0
   chargeAttack_P1: {fileID: 511886323}
   projectile_btn_P2: 3
-  projectile_P2: {fileID: 1145435610}
+  projectile_P2: {fileID: 442410078}
   teleport_btn_P2: 5
-  teleport_P2: {fileID: 1874429814}
+  teleport_P2: {fileID: 463940163}
   swipeAttack_btn_L_P2: 1
   swipeAttack_btn_R_P2: 2
   swipeAttack_P2: {fileID: 483257310}
