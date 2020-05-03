@@ -596,13 +596,7 @@ public class PocketPlayerController : MonoBehaviour
 
     public bool ButtonPressed(Button button)
     {
-        if (bufferedButton.button == button && bufferedButton.framesLeft > 0)
-        {
-            bufferedButton.framesLeft = 0;
-            return true;
-        }
-
-        return ButtonList_OnKeyDown.Contains(button);
+        return ButtonList_OnKeyDown.Contains(button) || bufferedButton.button == button && bufferedButton.framesLeft > 0;
     }
 
     private void OnGUI()
