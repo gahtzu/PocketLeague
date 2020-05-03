@@ -78,7 +78,6 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
 
     public override void SimulateOwner()
     {
-        Debug.Log("Im owner");
         DaMove();
     }
 
