@@ -74,6 +74,13 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
     {
         transform.position = new Vector3(-10f, .5f, 0f);
         state.SetTransforms(state.PocketPlayerTransform, transform);
+        state.AddCallback("PocketPlayerS", () => {
+            if(state.PocketPlayerS == 1)
+            {
+                isSwipingRight = false;
+                stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
+            }
+        });
     }
 
     public override void SimulateOwner()
@@ -351,6 +358,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
             yield return new WaitForEndOfFrame();
 
         stateMachine.ChangeState(PlayerState.Actionable);
+        state.PocketPlayerS = 0;
     }
 
     private IEnumerator getHitBySwipeAttack()
@@ -507,13 +515,15 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
             }
             else if (ButtonPressed(GetButtonMappingForMove("SwipeAttackLeft")))
             {
-                isSwipingRight = false;
-                stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
+                //isSwipingRight = false;
+                //stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
+
+                state.PocketPlayerS = 1;
             }
             else if (ButtonPressed(GetButtonMappingForMove("SwipeAttackRight")))
             {
-                isSwipingRight = true;
-                stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
+                //isSwipingRight = true;
+                //stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
             }
             else if (ButtonPressed(GetButtonMappingForMove("Teleport")) && CanTeleport())
             {
