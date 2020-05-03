@@ -400,8 +400,9 @@ GameObject:
   m_Component:
   - component: {fileID: 7295994299670857225}
   - component: {fileID: 7295994299670857230}
+  - component: {fileID: -34959904160746773}
   m_Layer: 9
-  m_Name: Player
+  m_Name: PocketPlayer
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -461,6 +462,35 @@ MonoBehaviour:
   framesWithoutTeleport: 0
   framesWithoutProjectile: 0
   hitboxHolder: {fileID: 0}
+--- !u!114 &-34959904160746773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7295994299670857231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -36112512, guid: 5b00bf8b25851d440940a40ec23344f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _sceneGuid: 
+  _serializerGuid: 38dbbcbe-3785-4db8-bdb8-536024d94742
+  _prefabId: 2
+  _updateRate: 1
+  _autoFreezeProxyFrames: 0
+  _clientPredicted: 1
+  _allowInstantiateOnClient: 1
+  _persistThroughSceneLoads: 0
+  _sceneObjectDestroyOnDetach: 1
+  _sceneObjectAutoAttach: 1
+  _alwaysProxy: 0
+  _detachOnDisable: 1
+  _allowFirstReplicationWhenFrozen: 0
+  _autoRemoveChildEntities: 0
+  _entityBehaviourQueryOption: 0
+  _entityPriorityCalculatorQueryOption: 0
+  _entityReplicationFilterQueryOption: 0
 --- !u!1 &7295994299860767248
 GameObject:
   m_ObjectHideFlags: 0

@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-public class PocketPlayerController : MonoBehaviour
+public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
 {
 
     #region Variables
@@ -69,6 +69,21 @@ public class PocketPlayerController : MonoBehaviour
         public int framesLeft { get; set; }
     }
     #endregion
+
+    private BoltEntity be;
+    public override void Attached()
+    {
+        be = GetComponent<BoltEntity>();
+
+        transform.position = new Vector3(-10f, .5f, 0f);
+        state.SetTransforms(state.PocketPlayerTransform, transform);
+    }
+
+    public override void SimulateOwner()
+    {
+        Debug.Log("Im owner");
+        DaMove();
+    }
 
     public void InitializePlayer(int playerId)
     {
@@ -457,8 +472,10 @@ public class PocketPlayerController : MonoBehaviour
         stateMachine.ChangeState(PlayerState.Actionable);
     }
 
-    private void LateUpdate()
+    private void DaMove()
     {
+        if (masterLogic == null) return;
+
         stateMachine.ChangeState(PlayerState.Idle);
         GetInputs();
 

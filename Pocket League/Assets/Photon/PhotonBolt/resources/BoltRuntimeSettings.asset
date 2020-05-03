@@ -46,12 +46,12 @@ MonoBehaviour:
     EnableIPv6: 0
   debugClientCount: 2
   debugStartPort: 50538
-  debugStartMapName: BoltDebugScene
+  debugStartMapName: SampMen
   debugPlayAsServer: 1
   showDebugInfo: 1
   overrideTimeScale: 1
   logUncaughtExceptions: 0
-  debugEditorMode: 1
+  debugEditorMode: 0
   consoleToggleKey: 9
   consoleVisibleByDefault: 1
   compilationWarnLevel: 4

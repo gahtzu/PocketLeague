@@ -102,7 +102,8 @@ public class MasterLogic : MonoBehaviour
         nextUpdate = Time.time;
     }
 
-    void Start()
+    bool started = false;
+    public void StartGame()
     {
         goText = GameObject.Find("GoText").GetComponent<Text>();
         SetGoTextProperties(1, "", goText.color);
@@ -118,9 +119,14 @@ public class MasterLogic : MonoBehaviour
         gameStateMachine.Subscribe(Death, GameStateId.Death, true);
         gameStateMachine.Subscribe(Results, GameStateId.Results, true);
 
-        for (int i = 1; i < 3; i++)
-            CreatePlayer(i);
+        //for (int i = 1; i < 3; i++)
+            //CreatePlayer(i);
 
+        GameObject p2 = GameObject.Find("Player 2");
+        GameObject p1 = GameObject.Find("Player 1");
+
+        SetPlayer(p2, 2);
+        SetPlayer(p1, 1);
         players[0].otherPlayer = GameObject.Find("Player 2");
         players[1].otherPlayer = GameObject.Find("Player 1");
         players[0].otherPlayerController = players[1].GetComponent<PocketPlayerController>();
@@ -134,6 +140,19 @@ public class MasterLogic : MonoBehaviour
     void Death() { }
     void Results() { }
 
+    public void SetPlayer(GameObject newPlayer, int id)
+    {
+        //newPlayer.name = "Player " + id;
+        newPlayer.layer = 8 + id;
+
+        PocketPlayerController newController = newPlayer.GetComponent<PocketPlayerController>();
+        newController.InitializePlayer(id);
+        newController.playerDetails.stocks = stockCount;
+
+        players.Add(newController);
+    }
+
+
     public void CreatePlayer(int id)
     {
         GameObject newPlayer = GameObject.Instantiate(playerObj, spawnPositions[id - 1], Quaternion.identity) as GameObject;
@@ -146,6 +165,7 @@ public class MasterLogic : MonoBehaviour
 
         players.Add(newController);
     }
+
 
     public void GetReadyForCountDown(PocketPlayerController player)
     {
@@ -197,6 +217,7 @@ public class MasterLogic : MonoBehaviour
         SetGoTextProperties(140, "GO!", Color.green);
         for (int i = 0; i < framesUntilNextNumber; i++) { yield return new WaitForEndOfFrame(); }
         SetGoTextProperties(0, "", startingColor);
+        started = true;
     }
 
 
@@ -336,7 +357,7 @@ public class MasterLogic : MonoBehaviour
 
         GUILayout.BeginArea(new Rect(Screen.width / 3.5f, Screen.height / 2f, Screen.width, Screen.height));
         GUILayout.EndArea();
-        if (!isGameStateActive(GameStateId.Results))
+        if (!isGameStateActive(GameStateId.Results) && started)
         {
             GUI.color = new Color(1f, 1f, 1f, .75f);
             string player1stocks = "[", player2stocks = "[";
