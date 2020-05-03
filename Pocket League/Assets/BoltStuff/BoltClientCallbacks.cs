@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[BoltGlobalBehaviour(BoltNetworkModes.Server, "Test")]
-public class BoltServerCallbacks : Bolt.GlobalEventListener
+[BoltGlobalBehaviour(BoltNetworkModes.Client, "Test")]
+public class BoltClientCallbacks : Bolt.GlobalEventListener
 {
     public override void SceneLoadLocalDone(string map)
     {

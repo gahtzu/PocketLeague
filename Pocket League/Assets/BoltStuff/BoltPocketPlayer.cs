@@ -19,7 +19,7 @@ public class BoltPocketPlayer
     {
         if (!character)
         {
-            character = BoltNetwork.Instantiate(BoltPrefabs.PocketPlayer, RandomPosition(), Quaternion.identity);
+            character = BoltNetwork.Instantiate(BoltPrefabs.PocketPlayer, new Vector3(0,0,0), Quaternion.identity);
 
             if (IsServer)
             {
