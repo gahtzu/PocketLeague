@@ -16,5 +16,9 @@ public class BoltNetworkCallbacks : GlobalEventListener
     public override void EntityAttached(BoltEntity entity)
     {
         entity.gameObject.name = "Player " + ++i;
+        if(i >= 2)
+        {
+            GameObject.FindObjectOfType<MasterLogic>().StartGame();
+        }
     }
 }
