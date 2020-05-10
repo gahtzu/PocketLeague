@@ -74,12 +74,20 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
     {
         transform.position = new Vector3(-10f, .5f, 0f);
         state.SetTransforms(state.PocketPlayerTransform, transform);
+
+        stateMachine.Subscribe(() =>
+        {
+            Debug.Log("State going out is: " + ((PlayerState)state.PocketPlayerS).ToString());
+            state.PocketPlayerS = stateMachine.GetCurrentStateId();
+        });
+
         state.AddCallback("PocketPlayerS", () => {
-            stateMachine.ChangeState((PlayerState)state.PocketPlayerS);
             if(state.PocketPlayerS == (int)PlayerState.SwipeAttack)
             {
                 isSwipingRight = false;
             }
+            Debug.Log("State coming in is: " + ((PlayerState)state.PocketPlayerS).ToString());
+            stateMachine.ChangeState((PlayerState)state.PocketPlayerS);
         });
     }
 

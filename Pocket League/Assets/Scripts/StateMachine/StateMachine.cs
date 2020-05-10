@@ -20,13 +20,26 @@ public abstract class StateMachine
         }
     }
 
-    public void Subscribe(Action callback, Enum stateId, bool onEntry = true)
+    public void Subscribe(Action callback, Enum stateId = null, bool onEntry = true)
     {
         State state = null;
-        if (stateId != null)
+
+        if (stateId == null)
+        {
+            foreach (PlayerState s in Enum.GetValues(typeof(PlayerState)))
+            {
+                state = FindState(stateId);
+                state.Subscribe(callback, onEntry);
+            }
+        }
+
+        else
+        {
             state = FindState(stateId);
-        if (state != null)
-            state.Subscribe(callback, onEntry);
+            if (state != null)
+                state.Subscribe(callback, onEntry);
+        }
+
     }
 
     public bool IsActive(Enum stateId)
