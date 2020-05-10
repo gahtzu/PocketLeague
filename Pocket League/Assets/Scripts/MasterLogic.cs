@@ -120,13 +120,13 @@ public class MasterLogic : MonoBehaviour
         gameStateMachine.Subscribe(Results, GameStateId.Results, true);
 
         //for (int i = 1; i < 3; i++)
-            //CreatePlayer(i);
+        //CreatePlayer(i);
 
-        GameObject p2 = GameObject.Find("Player 2");
         GameObject p1 = GameObject.Find("Player 1");
+        GameObject p2 = GameObject.Find("Player 2");
 
-        SetPlayer(p2, 2);
         SetPlayer(p1, 1);
+        SetPlayer(p2, 2);
         players[0].otherPlayer = GameObject.Find("Player 2");
         players[1].otherPlayer = GameObject.Find("Player 1");
         players[0].otherPlayerController = players[1].GetComponent<PocketPlayerController>();

@@ -75,10 +75,10 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         transform.position = new Vector3(-10f, .5f, 0f);
         state.SetTransforms(state.PocketPlayerTransform, transform);
         state.AddCallback("PocketPlayerS", () => {
-            if(state.PocketPlayerS == 1)
+            stateMachine.ChangeState((PlayerState)state.PocketPlayerS);
+            if(state.PocketPlayerS == (int)PlayerState.SwipeAttack)
             {
                 isSwipingRight = false;
-                stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
             }
         });
     }
@@ -358,7 +358,8 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
             yield return new WaitForEndOfFrame();
 
         stateMachine.ChangeState(PlayerState.Actionable);
-        state.PocketPlayerS = 0;
+
+        //state.PocketPlayerS = 0;
     }
 
     private IEnumerator getHitBySwipeAttack()
@@ -518,7 +519,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
                 //isSwipingRight = false;
                 //stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
 
-                state.PocketPlayerS = 1;
+                state.PocketPlayerS = (int)PlayerState.SwipeAttack;
             }
             else if (ButtonPressed(GetButtonMappingForMove("SwipeAttackRight")))
             {
@@ -563,6 +564,15 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         ButtonList_OnKeyDown.Clear();
         ButtonList_OnKeyUp.Clear();
 
+        JoystickPosition.y = Input.GetKey(KeyCode.W) ? 1f : 0f;
+        JoystickPosition.y += Input.GetKey(KeyCode.S) ? -1f : 0f;
+        JoystickPosition.x = Input.GetKey(KeyCode.A) ? -1f : 0f;
+        JoystickPosition.x += Input.GetKey(KeyCode.D) ? 1f : 0f;
+
+        RegisterKeyboardInputs(KeyCode.J, 2);
+        RegisterKeyboardInputs(KeyCode.K, 7);
+        RegisterKeyboardInputs(KeyCode.L, 6);
+        /*
         if (hasController)
         {
             JoystickPosition.x = Input.GetAxis("Player" + playerDetails.id + "Horizontal");
@@ -591,6 +601,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
             RegisterKeyboardInputs(KeyCode.K, 7);
             RegisterKeyboardInputs(KeyCode.L, 6);
         }
+        */
     }
 
     public void RegisterKeyboardInputs(KeyCode keycode, int buttonNumber)
