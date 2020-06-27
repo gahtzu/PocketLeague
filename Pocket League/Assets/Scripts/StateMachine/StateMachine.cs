@@ -28,7 +28,7 @@ public abstract class StateMachine
         {
             foreach (PlayerState s in Enum.GetValues(typeof(PlayerState)))
             {
-                state = FindState(stateId);
+                state = FindState(s);
                 state.Subscribe(callback, onEntry);
             }
         }

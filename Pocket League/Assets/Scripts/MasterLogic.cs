@@ -100,6 +100,7 @@ public class MasterLogic : MonoBehaviour
         Application.targetFrameRate = 120;
         QualitySettings.vSyncCount = 0;
         nextUpdate = Time.time;
+        GameObject.FindObjectOfType<BoltConsole>().visible = false;
     }
 
     bool started = false;

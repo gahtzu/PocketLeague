@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Bolt;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -70,25 +71,38 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
     }
     #endregion
 
+    bool isOwner = false;
     public override void Attached()
     {
+        isOwner = GetComponent<BoltEntity>().IsOwner;
         transform.position = new Vector3(-10f, .5f, 0f);
         state.SetTransforms(state.PocketPlayerTransform, transform);
 
-        stateMachine.Subscribe(() =>
+        if (isOwner)
         {
-            Debug.Log("State going out is: " + ((PlayerState)state.PocketPlayerS).ToString());
-            state.PocketPlayerS = stateMachine.GetCurrentStateId();
-        });
-
-        state.AddCallback("PocketPlayerS", () => {
-            if(state.PocketPlayerS == (int)PlayerState.SwipeAttack)
+            stateMachine.Subscribe(() =>
             {
-                isSwipingRight = false;
-            }
-            Debug.Log("State coming in is: " + ((PlayerState)state.PocketPlayerS).ToString());
-            stateMachine.ChangeState((PlayerState)state.PocketPlayerS);
-        });
+                if((PlayerState)stateMachine.GetCurrentStateEnum() == PlayerState.Hitstun || (PlayerState)stateMachine.GetCurrentStateEnum() == PlayerState.Actionable)
+                {
+                    return;
+                }
+                state.PocketPlayerS = stateMachine.GetCurrentStateId();
+                Debug.Log("State going out is: " + ((PlayerState)state.PocketPlayerS).ToString());
+            });
+        }
+
+        else
+        {
+            state.AddCallback("PocketPlayerS", () => {
+
+                if (state.PocketPlayerS == (int)PlayerState.SwipeAttack)
+                {
+                    isSwipingRight = false;
+                }
+                Debug.Log("State coming in is: " + ((PlayerState)state.PocketPlayerS).ToString());
+                stateMachine.ChangeState((PlayerState)state.PocketPlayerS);
+            });
+        }
     }
 
     public override void SimulateOwner()
@@ -145,6 +159,10 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
 
     void Idle()
     {
+        if(!isOwner)
+        {
+            print("SETTING BALL COLOR IDLE");
+        }
         SetBallColor(color_idle, isBlank: true);
         ToggleHitbox(hitBox, false);
     }
@@ -184,6 +202,9 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
 
     void GetHit(bool hitByProjectile)
     {
+        state.SetTransforms(state.PocketPlayerTransform, null);
+        //entity.enabled = false;
+
         SetBallColor(color_hitstun);
         StopAllCoroutines();
         line.SetActive(false);
@@ -301,6 +322,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         }
 
         stateMachine.ChangeState(PlayerState.Actionable);
+
     }
 
     private IEnumerator chargeAttackRecovery()
@@ -372,6 +394,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
 
     private IEnumerator getHitBySwipeAttack()
     {
+        Debug.Log("hit with swipe");
         //disable opponents hitbox until their next attack
         ToggleHitbox(otherPlayerController.hitBox, isEnabled: false, alsoToggleVisual: false);
 
@@ -402,7 +425,12 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
             yield return new WaitForEndOfFrame();
         }
 
+        //entity.enabled = true;
         stateMachine.ChangeState(PlayerState.Actionable);
+        stateMachine.ChangeState(PlayerState.Idle);
+        if(isOwner)
+        state.SetTransforms(state.PocketPlayerTransform, transform);
+        // state.SetTransforms(state.PocketPlayerTransform, transform);
     }
 
     private IEnumerator teleport()
@@ -526,13 +554,15 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
             {
                 //isSwipingRight = false;
                 //stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
-
-                state.PocketPlayerS = (int)PlayerState.SwipeAttack;
+                Debug.Log("left");
+                isSwipingRight = false;
+                stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
             }
             else if (ButtonPressed(GetButtonMappingForMove("SwipeAttackRight")))
             {
-                //isSwipingRight = true;
-                //stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
+                Debug.Log("right");
+                isSwipingRight = false;
+                stateMachine.ChangeState(PlayerState.SwipeAttack); //start attack
             }
             else if (ButtonPressed(GetButtonMappingForMove("Teleport")) && CanTeleport())
             {

@@ -2,6 +2,7 @@
 
 public class BoltPocketPlayer
 {
+
     public BoltEntity character;
     public BoltConnection connection;
 
