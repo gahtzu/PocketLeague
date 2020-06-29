@@ -8,15 +8,14 @@ public abstract class StateMachine
     protected abstract void Initialize();
     public StateMachine() { Initialize(); }
 
-    public void ChangeState(Enum stateId, bool on = true)
+    public void ChangeState(Enum stateId, bool on = true, bool forceChange = false)
     {
-
         State state = FindState(stateId);
         if (state != null)
         {
             StateGroup stateGroup = stateGroups[state.groupIndex];
             if (stateGroup != null)
-                stateGroup.ChangeState(state, on);
+                stateGroup.ChangeState(state, on, forceChange);
         }
     }
 

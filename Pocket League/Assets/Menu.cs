@@ -14,6 +14,7 @@ public class Menu : GlobalEventListener
         if (GUILayout.Button("Start Server", GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
         {
             // START SERVER
+            BoltPocketPlayerRegistry.isServer = true;
             BoltLauncher.StartServer();
         }
 

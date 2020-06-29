@@ -3,6 +3,7 @@
 public static class BoltPocketPlayerRegistry
 {
     public static int numPlayers = 0;
+    public static bool isServer = false;
 
     // keeps a list of all the players
     static List<BoltPocketPlayer> players = new List<BoltPocketPlayer>();

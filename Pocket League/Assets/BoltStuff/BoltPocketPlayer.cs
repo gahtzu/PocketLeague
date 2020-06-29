@@ -24,6 +24,7 @@ public class BoltPocketPlayer
 
             if (IsServer)
             {
+                BoltPocketPlayerRegistry.isServer = true;
                 character.TakeControl();
             }
             else

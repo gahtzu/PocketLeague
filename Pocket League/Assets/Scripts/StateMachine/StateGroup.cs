@@ -23,7 +23,7 @@ public class StateGroup
     }
 
     //used to trigger a state change within this state group
-    public void ChangeState(State state, bool on = true)
+    public void ChangeState(State state, bool on = true, bool forceChange = false)
     {
         //if user is turning a state off then return right after
         if (!on)
@@ -39,7 +39,7 @@ public class StateGroup
         //check to see if the current state can legally transition to the incoming state, if not then return
         if (currentState != null)
         {
-            if (!currentState.CanTransition(state.id))
+            if (!currentState.CanTransition(state.id) && !forceChange)
             {
                 //Debug.LogWarning("Tried to call an illegal transition!");
                 //Debug.LogWarning("Current state ' " + currentState.name + " ' cannot transition into state ' " + state.name + " '");
@@ -61,7 +61,6 @@ public class StateGroup
 
         //set incoming state to 'true'
         state.Set(state.id, true);
-
     }
 
     #region Variables

@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class MasterLogic : MonoBehaviour
+public class MasterLogic : Bolt.GlobalEventListener
 {
     #region Inspector Properties
     [Header("Misc")]
@@ -81,8 +81,8 @@ public class MasterLogic : MonoBehaviour
     #region Variables
     [HideInInspector]
     private List<PocketPlayerController> players = new List<PocketPlayerController>();
-    [HideInInspector]
-    public bool viewDebug = false;
+   // [HideInInspector]
+    public bool viewDebug = true;
     [HideInInspector]
     public GameStateMachine gameStateMachine = new GameStateMachine();
     private int frameCount = 0, victoryPlayer = 1;
@@ -133,7 +133,20 @@ public class MasterLogic : MonoBehaviour
         players[0].otherPlayerController = players[1].GetComponent<PocketPlayerController>();
         players[1].otherPlayerController = players[0].GetComponent<PocketPlayerController>();
 
-        StartCoroutine("CountDown");
+        if (BoltPocketPlayerRegistry.isServer)
+        {
+            players[0].gameObject.transform.position = spawnPositions[0];
+            players[0].otherPlayer.transform.position = spawnPositions[1];
+        }
+        else
+        {
+            players[0].otherPlayer.transform.position = spawnPositions[0];
+            players[0].gameObject.transform.position = spawnPositions[1];
+        }
+        var evnt = PlayerDeath.Create();
+        evnt.Countdown = true;
+        evnt.Send();
+        //StartCoroutine("CountDown");
     }
 
     void Countdown() { }
@@ -167,20 +180,37 @@ public class MasterLogic : MonoBehaviour
         players.Add(newController);
     }
 
-
-    public void GetReadyForCountDown(PocketPlayerController player)
+    public override void OnEvent(PlayerDeath evnt)
     {
-        player.model.transform.localScale = new Vector3(1.173f, 1.173f, 1.173f);
-        player.model.SetActive(true);
+       if(evnt.Countdown)
+        {
+            GetReadyForCountDown();
+        }
+    }
 
+    public void GetReadyForCountDown()
+    {
         foreach (PocketPlayerController _player in players)
         {
+            _player.model.transform.localScale = new Vector3(1.173f, 1.173f, 1.173f);
+            _player.model.SetActive(true);
             _player.stateMachine.ChangeState(PlayerState.Actionable);
             _player.StopAllCoroutines();
         }
 
-        player.gameObject.transform.position = spawnPositions[player.playerDetails.id - 1];
-        player.otherPlayer.transform.position = spawnPositions[player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.id - 1];
+        PocketPlayerController player = players[0];
+
+        if (BoltPocketPlayerRegistry.isServer)
+        {
+            player.gameObject.transform.position = spawnPositions[player.playerDetails.id - 1];
+            player.otherPlayer.transform.position = spawnPositions[player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.id - 1];
+        }
+        else
+        {
+            player.otherPlayer.transform.position = spawnPositions[player.playerDetails.id - 1];
+            player.gameObject.transform.position = spawnPositions[player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.id - 1];
+        }
+
         player.playerDetails.percent = 0f;
         if (ResetPercentOnKill)
             player.otherPlayer.GetComponent<PocketPlayerController>().playerDetails.percent = 0f;
@@ -243,9 +273,16 @@ public class MasterLogic : MonoBehaviour
         }
 
         if (player.playerDetails.stocks > 0)
-            GetReadyForCountDown(player);
+        {
+            var evnt = PlayerDeath.Create();
+            evnt.Countdown = true;
+            evnt.Send();
+            //GetReadyForCountDown();
+        }
         else
+        {
             EndGame(player);
+        }
     }
 
 
@@ -311,7 +348,7 @@ public class MasterLogic : MonoBehaviour
                     newColor.a = ScaleMultiplier(-.2f, .75f, Vector3.Distance(player.transform.position, player.otherPlayer.transform.position) / 5f);
 
                     percentsAttached.normal.textColor = newColor;
-                    GUI.Box(new Rect(mainCamera.WorldToScreenPoint(player.gameObject.transform.position).x - wordBoxOffsetX, Screen.height - mainCamera.WorldToScreenPoint(player.gameObject.transform.position).y - 53, 100f, 100f), Mathf.Floor(player.playerDetails.percent).ToString() + "%", percentsAttached);
+                    GUI.Box(new Rect(mainCamera.WorldToScreenPoint(player.gameObject.transform.position).x - wordBoxOffsetX, Screen.height - mainCamera.WorldToScreenPoint(player.gameObject.transform.position).y - 53, 100f, 100f),player.stateMachine.GetCurrentStateEnum().ToString(), percentsAttached);
                 }
             }
         }
@@ -332,9 +369,9 @@ public class MasterLogic : MonoBehaviour
             GUI.color = Color.white;
             GUILayout.Label("                    FPS: " + fps, small);
             GUILayout.Label(" ");
-            for (int j = 1; j < players.Count + 1; j++)
+            for (int j = 0; j < players.Count; j++)
             {
-                GUILayout.Label("             Player " + j.ToString() + " State: " + players[j - 1].stateMachine.GetCurrentStateEnum().ToString(), header);
+                GUILayout.Label("             Player " + j.ToString() + " State: " + players[j].stateMachine.GetCurrentStateEnum().ToString(), header);
                 GUILayout.Label("             Inputs:", header);
                 GUILayout.Label("                    X=" + Input.GetAxis("Player" + j + "Horizontal").ToString("0.###"), small);
                 GUILayout.Label("                    Y=" + Input.GetAxis("Player" + j + "Vertical").ToString("0.###"), small);
