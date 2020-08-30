@@ -7,18 +7,12 @@ public class GameStateMachine : StateMachine
 {
     protected override void Initialize()
     {
-        State countdown = CreateState(GameStateId.Countdown, LegalTransitions(new List<Enum>() { GameStateId.Battle }));
-        State battle = CreateState(GameStateId.Battle, LegalTransitions(new List<Enum>() { GameStateId.Death }));
-        State death = CreateState(GameStateId.Death, LegalTransitions(new List<Enum>() { GameStateId.Countdown, GameStateId.Results }));
-        State results = CreateState(GameStateId.Results, LegalTransitions(new List<Enum>() { }));
-        StateGroup sceneGroup = CreateGroup(GroupId.SceneStates, new List<State> { countdown, battle, death, results }, countdown);
-        stateGroups = new List<StateGroup>() { sceneGroup };
+        CreateState(GameStateId.Countdown, LegalTransitions(GameStateId.Battle));
+        CreateState(GameStateId.Battle, LegalTransitions(GameStateId.Death));
+        CreateState(GameStateId.Death, LegalTransitions(GameStateId.Countdown, GameStateId.Results));
+        CreateState(GameStateId.Results, IllegalTransitions());
     }
 
-    public enum GroupId
-    {
-        SceneStates = 0
-    }
 }
 
 

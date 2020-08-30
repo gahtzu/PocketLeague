@@ -105,32 +105,32 @@ public class PocketPlayerController : MonoBehaviour
         stateMachine.Subscribe(Projectile, PlayerState.Projectile, true);
         stateMachine.Subscribe(Actionable, PlayerState.Actionable, true);
 
-        hasController = Input.GetJoystickNames().Length >= playerId;
+        //hasController = Input.GetJoystickNames().Length >= playerId;
 
         framesWithoutTeleport = TeleportProperties.rechargeFrames;
         framesWithoutProjectile = ProjectileProperties.rechargeFrames;
     }
 
-    void Dead()
+    void Dead(Enum previousState)
     {
         StopAllCoroutines();
         SetBallColor(color_dead);
     }
 
-    void Idle()
+    void Idle(Enum previousState)
     {
         SetBallColor(color_idle, isBlank: true);
         ToggleHitbox(hitBox, false);
     }
 
-    void Run()
+    void Run(Enum previousState)
     {
         StopAllCoroutines();
         SetBallColor(color_run, isBlank: true);
         ToggleHitbox(hitBox, false);
     }
 
-    void BeginCharge()
+    void BeginCharge(Enum previousState)
     {
         StopAllCoroutines();
         chargeCounter = 0;
@@ -138,7 +138,7 @@ public class PocketPlayerController : MonoBehaviour
         StartCoroutine("chargeAttack");
     }
 
-    void ChargeAttackRecovery()
+    void ChargeAttackRecovery(Enum previousState)
     {
         StopAllCoroutines();
         line.SetActive(false);
@@ -146,12 +146,12 @@ public class PocketPlayerController : MonoBehaviour
         StartCoroutine("chargeAttackRecovery");
     }
 
-    void GetHitByAttack()
+    void GetHitByAttack(Enum previousState)
     {
         GetHit(false);
     }
 
-    void GetHitByProjectile()
+    void GetHitByProjectile(Enum previousState)
     {
         GetHit(true);
     }
@@ -172,24 +172,24 @@ public class PocketPlayerController : MonoBehaviour
         }
         else
         {
-            switch (otherPlayerController.stateMachine.GetCurrentStateEnum())
+            switch (otherPlayerController.stateMachine.GetCurrentState())
             {
                 case PlayerState.ChargeAttackRecovery: StartCoroutine("getHitByChargeAttack"); break;
                 case PlayerState.SwipeAttack: StartCoroutine("getHitBySwipeAttack"); break;
-                default: Debug.LogError("WEIRD! WE GOT HIT BY: " + otherPlayerController.stateMachine.GetCurrentStateEnum().ToString()); StartCoroutine("getHitByProjectile"); break;
+                default: Debug.LogError("WEIRD! WE GOT HIT BY: " + otherPlayerController.stateMachine.GetCurrentState().ToString()); StartCoroutine("getHitByProjectile"); break;
             }
         }
     }
 
 
-    void SwipeAttack()
+    void SwipeAttack(Enum previousState)
     {
         StopAllCoroutines();
         SetBallColor(color_charge, isBlank: true);
         StartCoroutine("swipeAttack");
     }
 
-    void Teleport()
+    void Teleport(Enum previousState)
     {
         StopAllCoroutines();
         ToggleHitbox(hitBox, false, true);
@@ -199,7 +199,7 @@ public class PocketPlayerController : MonoBehaviour
         StartCoroutine("teleport");
     }
 
-    void Projectile()
+    void Projectile(Enum previousState)
     {
         StopAllCoroutines();
         framesWithoutProjectile = 0;
@@ -207,7 +207,7 @@ public class PocketPlayerController : MonoBehaviour
         StartCoroutine("projectile");
     }
 
-    void Actionable()
+    void Actionable(Enum previousState)
     {
         line.SetActive(false);
         ResetHitboxOrientation();
@@ -218,7 +218,7 @@ public class PocketPlayerController : MonoBehaviour
 
     private IEnumerator chargeAttack()
     {
-        while (isPlayerStateActive(PlayerState.Charge))
+        while (stateMachine.IsStateActive(PlayerState.Charge))
         {
             float weight = (float)chargeCounter / (float)ChargeAttackProperties.maxChargeFrames;
 
@@ -295,13 +295,13 @@ public class PocketPlayerController : MonoBehaviour
         {
             if (i > hitboxActivationFrames)
                 ToggleHitbox(hitBox, false);
-            if (isPlayerStateActive(PlayerState.ChargeAttackRecovery))
+            if (stateMachine.IsStateActive(PlayerState.ChargeAttackRecovery))
                 yield return new WaitForEndOfFrame();
         }
 
         ToggleHitbox(hitBox, false);
 
-        if (isPlayerStateActive(PlayerState.ChargeAttackRecovery))
+        if (stateMachine.IsStateActive(PlayerState.ChargeAttackRecovery))
             stateMachine.ChangeState(PlayerState.Actionable);
 
         chargeCounter = 0;
@@ -478,15 +478,15 @@ public class PocketPlayerController : MonoBehaviour
         moveVector *= masterLogic.playerSpeed;
 
         //only want to be moving during these scenes   
-        if (!masterLogic.isGameStateActive(GameStateId.Countdown))
+        if (!masterLogic.gameStateMachine.IsStateActive(GameStateId.Countdown))
             if (JoystickPosition != new Vector2(0f, 0f))
                 stateMachine.ChangeState(PlayerState.Run);
 
         //allow movement via joystick if we are running
-        if (isPlayerStateActive(PlayerState.Run) || isPlayerStateActive(PlayerState.Charge))
+        if (stateMachine.IsStateActive(PlayerState.Run) || stateMachine.IsStateActive(PlayerState.Charge))
             MovePlayer(moveVector);
 
-        if (masterLogic.isGameStateActive(GameStateId.Battle))
+        if (masterLogic.gameStateMachine.IsStateActive(GameStateId.Battle))
         {
             if (ButtonPressed(GetButtonMappingForMove("ChargeAttack")))
             {
@@ -524,13 +524,13 @@ public class PocketPlayerController : MonoBehaviour
         }
         else { startCounter = 0; }
 
-        if (!isPlayerStateActive(PlayerState.Teleport))
+        if (!stateMachine.IsStateActive(PlayerState.Teleport))
             framesWithoutTeleport++;
-        if (!isPlayerStateActive(PlayerState.Projectile))
+        if (!stateMachine.IsStateActive(PlayerState.Projectile))
             framesWithoutProjectile++;
 
-        BallLight.GetComponent<Light>().color = CanTeleport() && ((!isPlayerStateActive(PlayerState.Hitstun)) && (!isPlayerStateActive(PlayerState.BulletHitstun))) ? Color.cyan : Color.white;
-        BallLight.GetComponent<Light>().intensity = CanTeleport() && ((!isPlayerStateActive(PlayerState.Hitstun)) && (!isPlayerStateActive(PlayerState.BulletHitstun))) ? 8f : 1.62f;
+        BallLight.GetComponent<Light>().color = CanTeleport() && ((!stateMachine.IsStateActive(PlayerState.Hitstun)) && (!stateMachine.IsStateActive(PlayerState.BulletHitstun))) ? Color.cyan : Color.white;
+        BallLight.GetComponent<Light>().intensity = CanTeleport() && ((!stateMachine.IsStateActive(PlayerState.Hitstun)) && (!stateMachine.IsStateActive(PlayerState.BulletHitstun))) ? 8f : 1.62f;
 
     }
 
@@ -547,6 +547,10 @@ public class PocketPlayerController : MonoBehaviour
         }
         else
         {
+            if(Input.GetKey(KeyCode.W))
+            {
+                JoystickPosition.y = Input.GetKey(KeyCode.W) ? 1f : 0f;
+            }
             JoystickPosition.y = Input.GetKey(KeyCode.W) ? 1f : 0f;
             JoystickPosition.y += Input.GetKey(KeyCode.S) ? -1f : 0f;
             JoystickPosition.x = Input.GetKey(KeyCode.A) ? -1f : 0f;
@@ -572,9 +576,12 @@ public class PocketPlayerController : MonoBehaviour
 
     public void RegisterKeyboardInputs(KeyCode keycode, int buttonNumber)
     {
-        if (Input.GetKeyDown(keycode)) ButtonList_OnKeyDown.Add((Button)buttonNumber);
-        if (Input.GetKeyUp(keycode)) ButtonList_OnKeyUp.Add((Button)buttonNumber);
-        if (Input.GetKey(keycode)) ButtonList_OnKey.Add((Button)buttonNumber);
+        if (Input.GetKeyDown(keycode))
+            ButtonList_OnKeyDown.Add((Button)buttonNumber);
+        if (Input.GetKeyUp(keycode))
+            ButtonList_OnKeyUp.Add((Button)buttonNumber);
+        if (Input.GetKey(keycode))
+            ButtonList_OnKey.Add((Button)buttonNumber);
     }
 
     public void RegisterControllerInputs(string keycode, int buttonNumber)
@@ -634,16 +641,16 @@ public class PocketPlayerController : MonoBehaviour
 
     public void MovePlayer(Vector3 movementVector)
     {
-        if (!ChargeAttackProperties.rotationLockedDuringCharge || !isPlayerStateActive(PlayerState.Charge))
+        if (!ChargeAttackProperties.rotationLockedDuringCharge || !stateMachine.IsStateActive(PlayerState.Charge))
             transform.LookAt(transform.position + movementVector);
-        transform.Translate(movementVector * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.World);
+        transform.Translate(movementVector * (stateMachine.IsStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.World);
         if (movementVector != Vector3.zero)
-            model.transform.Rotate(new Vector3(7f, 0f, 0f) * (isPlayerStateActive(PlayerState.Teleport) ? 1f : 1f) * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.Self);
+            model.transform.Rotate(new Vector3(7f, 0f, 0f) * (stateMachine.IsStateActive(PlayerState.Teleport) ? 1f : 1f) * (stateMachine.IsStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.Self);
     }
 
     public void ReflectKnockbackTrajectory(Vector3 wallColliderNormal)
     {
-        if (isPlayerStateActive(PlayerState.Hitstun) && masterLogic.isGameStateActive(GameStateId.Battle))
+        if (stateMachine.IsStateActive(PlayerState.Hitstun) && masterLogic.gameStateMachine.IsStateActive(GameStateId.Battle))
             knockbackTrajectory = Vector3.Reflect(knockbackTrajectory, wallColliderNormal).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
     }
 
@@ -662,11 +669,6 @@ public class PocketPlayerController : MonoBehaviour
     private Vector3 ScaleMultiplier(Vector3 min, Vector3 max, float multiple)
     {
         return min + ((max - min) * multiple);
-    }
-
-    public bool isPlayerStateActive(PlayerState state)
-    {
-        return (PlayerState)stateMachine.GetCurrentStateEnum() == state;
     }
 
     public void SetBallColor(Color c, bool isBlank = false, float influence = 1f)
