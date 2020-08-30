@@ -462,6 +462,7 @@ MonoBehaviour:
   framesWithoutTeleport: 0
   framesWithoutProjectile: 0
   hitboxHolder: {fileID: 0}
+  isOwner: 0
 --- !u!114 &-34959904160746773
 MonoBehaviour:
   m_ObjectHideFlags: 0

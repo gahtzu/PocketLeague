@@ -182,9 +182,35 @@ public class MasterLogic : Bolt.GlobalEventListener
 
     public override void OnEvent(PlayerDeath evnt)
     {
-       if(evnt.Countdown)
+        if (evnt.Countdown)
         {
             GetReadyForCountDown();
+        }
+    }
+
+    public override void OnEvent(PocketPlayerHit evnt)
+    {
+        if (evnt.ServerPlayer)
+        {
+            if(BoltPocketPlayerRegistry.isServer)
+            {
+                players[0].GetComponent<PocketPlayerController>().GetHit(false);
+            }
+            else
+            {
+                players[1].GetComponent<PocketPlayerController>().GetHit(false);
+            }
+        }
+        else
+        {
+            if (BoltPocketPlayerRegistry.isServer)
+            {
+                players[1].GetComponent<PocketPlayerController>().GetHit(false);
+            }
+            else
+            {
+                players[0].GetComponent<PocketPlayerController>().GetHit(false);
+            }
         }
     }
 

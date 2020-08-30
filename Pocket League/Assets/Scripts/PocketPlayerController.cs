@@ -71,24 +71,25 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
     }
     #endregion
 
-    bool isOwner = false;
+    public bool isOwner = false;
 
     public override void Attached()
     {
         isOwner = GetComponent<BoltEntity>().IsOwner;
         transform.position = new Vector3(-10f, .5f, 0f);
         state.SetTransforms(state.PocketPlayerTransform, transform);
-        
+       // state.SetTransforms(state.HitboxTransform, hitBox.transform);
         if (isOwner)
         {
             state.PocketPlayerS = (int)(PlayerState)stateMachine.GetCurrentStateEnum();
             
             stateMachine.Subscribe(() =>
             {
+                /*
                 if((PlayerState)stateMachine.GetCurrentStateEnum() == PlayerState.Hitstun || (PlayerState)stateMachine.GetCurrentStateEnum() == PlayerState.Actionable)
                 {
                     return;
-                }
+                }*/
                 state.PocketPlayerS = stateMachine.GetCurrentStateId();
                 Debug.Log("State going out is: " + ((PlayerState)state.PocketPlayerS).ToString());
             });
@@ -98,14 +99,12 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         {
             state.AddCallback("PocketPlayerS", () => {
 
-                if (state.PocketPlayerS == (int)PlayerState.SwipeAttack)
-                {
-                   // isSwipingRight = false;
-                }
                 Debug.Log("State coming in is: " + ((PlayerState)state.PocketPlayerS).ToString());
                 stateMachine.ChangeState((PlayerState)state.PocketPlayerS, forceChange: true);
             });
         }
+
+        cachedPosition = state.ImmediatePosition;
     }
     
     public override void SimulateOwner()
@@ -114,13 +113,25 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         //state.PocketPlayerS = stateMachine.GetCurrentStateId();
     }
 
+    private Vector3 cachedPosition;
     private void Update()
     {
         if(isOwner)
         {
             DaMove();
         }
+        else
+        {
+            if (state.ImmediatePosition != cachedPosition)
+            {
+                //might need to think about...confirming a hit on both sides
+                //transform.position = state.ImmediatePosition;
+                cachedPosition = state.ImmediatePosition;
+                state.SetTransforms(state.PocketPlayerTransform, transform);
+            }
+        }
     }
+
     public void InitializePlayer(int playerId)
     {
         BallLight = GameObject.Find("Ball Light" + playerId);
@@ -142,11 +153,22 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         hitBox = hitboxHolder.Find("hitbox").gameObject;
         hitBox.transform.localScale = ChargeAttackProperties.smallHitboxScale;
         hitBox.transform.localPosition += new Vector3(0f, 0f, ChargeAttackProperties.smallHitboxOffset);
+        //state.SetTransforms(state.HitboxTransform, hitBox.transform);
         hurtBox = transform.Find("hurtbox").gameObject;
 
         stateMachine.Subscribe(BeginCharge, PlayerState.Charge, true);
         stateMachine.Subscribe(ChargeAttackRecovery, PlayerState.ChargeAttackRecovery, true);
         stateMachine.Subscribe(GetHitByAttack, PlayerState.Hitstun, true);
+        stateMachine.Subscribe(() => 
+        {
+            //entity.enabled = true;
+            //need to set position and rotation of owner here, then set transform
+            if (isOwner)
+            {
+                state.ImmediatePosition = transform.position;
+                state.Percent = playerDetails.percent;
+            }
+        }, PlayerState.Hitstun, false);
         stateMachine.Subscribe(GetHitByProjectile, PlayerState.BulletHitstun, true);
         stateMachine.Subscribe(Idle, PlayerState.Idle, true);
         stateMachine.Subscribe(Run, PlayerState.Run, true);
@@ -155,7 +177,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         stateMachine.Subscribe(Teleport, PlayerState.Teleport, true);
         stateMachine.Subscribe(Projectile, PlayerState.Projectile, true);
         stateMachine.Subscribe(Actionable, PlayerState.Actionable, true);
-
+        gameStateMachine.Subscribe(() => { if(isOwner) state.Percent = 0; }, GameStateId.Countdown);
         hasController = Input.GetJoystickNames().Length >= playerId;
 
         framesWithoutTeleport = TeleportProperties.rechargeFrames;
@@ -211,11 +233,8 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         GetHit(true);
     }
 
-    void GetHit(bool hitByProjectile)
+    void NewHit()
     {
-        state.SetTransforms(state.PocketPlayerTransform, null);
-        //entity.enabled = false;
-
         SetBallColor(color_hitstun);
         StopAllCoroutines();
         line.SetActive(false);
@@ -223,18 +242,28 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         model.GetComponent<MeshRenderer>().enabled = true;
         ToggleHitbox(hurtBox, true, false);
         ToggleHitbox(hitBox, false, true);
+    }
+    public void GetHit(bool hitByProjectile)
+    {
+        if (!isOwner)
+        {
+            state.SetTransforms(state.PocketPlayerTransform, null);
+        }
+
+
 
         if (hitByProjectile)
         {
+            NewHit();
             StartCoroutine("getHitByProjectile");
         }
         else
         {
             switch (otherPlayerController.stateMachine.GetCurrentStateEnum())
             {
-                case PlayerState.ChargeAttackRecovery: StartCoroutine("getHitByChargeAttack"); break;
-                case PlayerState.SwipeAttack: StartCoroutine("getHitBySwipeAttack"); break;
-                default: Debug.LogError("WEIRD! WE GOT HIT BY: " + otherPlayerController.stateMachine.GetCurrentStateEnum().ToString()); StartCoroutine("getHitByProjectile"); break;
+                case PlayerState.ChargeAttackRecovery: NewHit();  StartCoroutine("getHitByChargeAttack"); break;
+                case PlayerState.SwipeAttack: NewHit(); StartCoroutine("getHitBySwipeAttack"); break;
+                default: Debug.LogError("WEIRD! WE GOT HIT BY: " + otherPlayerController.stateMachine.GetCurrentStateEnum().ToString()); break;
             }
         }
     }
@@ -399,6 +428,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
             yield return new WaitForEndOfFrame();
 
         stateMachine.ChangeState(PlayerState.Actionable);
+        stateMachine.ChangeState(PlayerState.Idle);
 
         //state.PocketPlayerS = 0;
     }
@@ -408,6 +438,8 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         Debug.Log("hit with swipe");
         //disable opponents hitbox until their next attack
         ToggleHitbox(otherPlayerController.hitBox, isEnabled: false, alsoToggleVisual: false);
+
+        playerDetails.percent = state.Percent;
 
         float _percentWeight = playerDetails.percent / 100f;
 
@@ -430,18 +462,21 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
 
         knockbackTrajectory = (playerAngleTrajectory.SetY(0f).normalized * knockbackVelocity * -1f).ApplyDirectionalInfluence(JoystickPosition, knockbackVelocity, masterLogic.DirectionalInfluenceMultiplier);
 
-        for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
+
+        //if(isOwner)
         {
-            MovePlayer(knockbackTrajectory);
-            yield return new WaitForEndOfFrame();
+            for (int i = 0; i < Mathf.Floor(hitstunLength); i++)
+            {
+                MovePlayer(knockbackTrajectory);
+                yield return new WaitForEndOfFrame();
+            }
+
+            Debug.Log("DONE MOVING FROM BEING HIT");
+
+            stateMachine.ChangeState(PlayerState.Actionable);
+            stateMachine.ChangeState(PlayerState.Idle);
         }
 
-        //entity.enabled = true;
-        stateMachine.ChangeState(PlayerState.Actionable);
-        stateMachine.ChangeState(PlayerState.Idle);
-        if(isOwner)
-        state.SetTransforms(state.PocketPlayerTransform, transform);
-        // state.SetTransforms(state.PocketPlayerTransform, transform);
     }
 
     private IEnumerator teleport()
@@ -607,6 +642,15 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
 
     }
 
+    private IEnumerator lag(int l)
+    {
+        for(int i = 0; i < l; ++i)
+        {
+            yield return new WaitForEndOfFrame();
+        }
+
+        GetInputs();
+    }
     public void GetInputs()
     {
         ButtonList_OnKey.Clear();
@@ -723,6 +767,10 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
 
     public void MovePlayer(Vector3 movementVector)
     {
+        if(!isOwner)
+        {
+           // movementVector *= 0.5f;
+        }
         if (!ChargeAttackProperties.rotationLockedDuringCharge || !isPlayerStateActive(PlayerState.Charge))
             transform.LookAt(transform.position + movementVector);
         transform.Translate(movementVector * (isPlayerStateActive(PlayerState.Charge) ? ChargeAttackProperties.speedMultiplierWhileCharging : 1f), Space.World);

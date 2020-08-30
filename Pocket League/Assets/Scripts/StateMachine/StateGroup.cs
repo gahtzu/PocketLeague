@@ -41,8 +41,6 @@ public class StateGroup
         {
             if (!currentState.CanTransition(state.id) && !forceChange)
             {
-                //Debug.LogWarning("Tried to call an illegal transition!");
-                //Debug.LogWarning("Current state ' " + currentState.name + " ' cannot transition into state ' " + state.name + " '");
                 return;
             }
         }
@@ -56,11 +54,11 @@ public class StateGroup
             {
                 //set previous state to 'false'
                 previousCurrentState.Set(state.id, false);
+                state.Set(state.id, true);
+
             }
         }
 
-        //set incoming state to 'true'
-        state.Set(state.id, true);
     }
 
     #region Variables

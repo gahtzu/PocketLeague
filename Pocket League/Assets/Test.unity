@@ -338,7 +338,7 @@ MonoBehaviour:
   hitBoxScale: {x: 0.5, y: 0.5, z: 3}
   startingYRotationOffset: 60
   startingOffset: {x: 0, y: 0, z: 1.5}
-  framesToSwipe: 18
+  framesToSwipe: 5
   startupFrames: 3
   hitboxLingerFrames: 5
   attackLagFrames: 8
