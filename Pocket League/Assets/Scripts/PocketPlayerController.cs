@@ -127,6 +127,8 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
                 //might need to think about...confirming a hit on both sides
                 //transform.position = state.ImmediatePosition;
                 cachedPosition = state.ImmediatePosition;
+                StopAllCoroutines();
+                playerDetails.percent = state.Percent;
                 state.SetTransforms(state.PocketPlayerTransform, transform);
             }
         }
@@ -169,6 +171,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
                 state.Percent = playerDetails.percent;
             }
         }, PlayerState.Hitstun, false);
+
         stateMachine.Subscribe(GetHitByProjectile, PlayerState.BulletHitstun, true);
         stateMachine.Subscribe(Idle, PlayerState.Idle, true);
         stateMachine.Subscribe(Run, PlayerState.Run, true);
@@ -177,13 +180,18 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         stateMachine.Subscribe(Teleport, PlayerState.Teleport, true);
         stateMachine.Subscribe(Projectile, PlayerState.Projectile, true);
         stateMachine.Subscribe(Actionable, PlayerState.Actionable, true);
-        gameStateMachine.Subscribe(() => { if(isOwner) state.Percent = 0; }, GameStateId.Countdown);
+        gameStateMachine.Subscribe(ResetPercent, GameStateId.Death);
         hasController = Input.GetJoystickNames().Length >= playerId;
 
         framesWithoutTeleport = TeleportProperties.rechargeFrames;
         framesWithoutProjectile = ProjectileProperties.rechargeFrames;
     }
 
+    void ResetPercent()
+    {
+        if (isOwner)
+            state.Percent = 0;
+    }
     void Dead()
     {
         StopAllCoroutines();
@@ -243,6 +251,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         ToggleHitbox(hurtBox, true, false);
         ToggleHitbox(hitBox, false, true);
     }
+
     public void GetHit(bool hitByProjectile)
     {
         if (!isOwner)
@@ -397,7 +406,9 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
 
     private IEnumerator swipeAttack()
     {
-        for (int i = 0; i < SwipeAttackProperties.startupFrames; i++)
+        int extra = 0;
+        //if (isOwner) extra = 5;
+        for (int i = 0; i < SwipeAttackProperties.startupFrames+ extra; i++)
             yield return new WaitForEndOfFrame();
 
         ToggleHitbox(hitBox, true, true);
@@ -438,8 +449,6 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
         Debug.Log("hit with swipe");
         //disable opponents hitbox until their next attack
         ToggleHitbox(otherPlayerController.hitBox, isEnabled: false, alsoToggleVisual: false);
-
-        playerDetails.percent = state.Percent;
 
         float _percentWeight = playerDetails.percent / 100f;
 
