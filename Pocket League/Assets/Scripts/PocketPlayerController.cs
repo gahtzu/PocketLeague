@@ -125,7 +125,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
             if (state.ImmediatePosition != cachedPosition)
             {
                 //might need to think about...confirming a hit on both sides
-                //transform.position = state.ImmediatePosition;
+                transform.position = state.ImmediatePosition;
                 cachedPosition = state.ImmediatePosition;
                 StopAllCoroutines();
                 playerDetails.percent = state.Percent;
@@ -407,7 +407,7 @@ public class PocketPlayerController : Bolt.EntityBehaviour<IPocketPlayerState>
     private IEnumerator swipeAttack()
     {
         int extra = 0;
-        //if (isOwner) extra = 5;
+        if (isOwner) extra = 5;
         for (int i = 0; i < SwipeAttackProperties.startupFrames+ extra; i++)
             yield return new WaitForEndOfFrame();
 
