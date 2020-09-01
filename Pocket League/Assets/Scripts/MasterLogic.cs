@@ -129,10 +129,10 @@ public class MasterLogic : MonoBehaviour
         StartCoroutine("CountDown");
     }
 
-    void Countdown() { }
-    void Battle() { }
-    void Death() { }
-    void Results() { }
+    void Countdown(Enum previousState) { }
+    void Battle(Enum previousState) { }
+    void Death(Enum previousState) { }
+    void Results(Enum previousState) { }
 
     public void CreatePlayer(int id)
     {
@@ -187,7 +187,7 @@ public class MasterLogic : MonoBehaviour
             {
                 incrementTotal += incrementToDecreaseSize;
                 SetGoTextProperties(startingSize - Mathf.FloorToInt(incrementTotal));
-                if (isGameStateActive(GameStateId.Countdown)) { yield return new WaitForEndOfFrame(); }
+                if (gameStateMachine.IsStateActive(GameStateId.Countdown)) { yield return new WaitForEndOfFrame(); }
             }
             incrementTotal = 0f;
         }
@@ -281,7 +281,7 @@ public class MasterLogic : MonoBehaviour
         {
             foreach (PocketPlayerController player in players)
             {
-                if (!player.isPlayerStateActive(PlayerState.Dead) && !player.isPlayerStateActive(PlayerState.Teleport))
+                if (!player.stateMachine.IsStateActive(PlayerState.Dead) && !player.stateMachine.IsStateActive(PlayerState.Teleport))
                 {
                     wordBoxOffsetX = -1f * (Mathf.Floor(player.playerDetails.percent).ToString() + "%").Length * percentCharacterOffsetX / 2f;
 
@@ -312,7 +312,7 @@ public class MasterLogic : MonoBehaviour
             GUILayout.Label(" ");
             for (int j = 1; j < players.Count + 1; j++)
             {
-                GUILayout.Label("             Player " + j.ToString() + " State: " + players[j - 1].stateMachine.GetCurrentStateEnum().ToString(), header);
+                GUILayout.Label("             Player " + j.ToString() + " State: " + players[j - 1].stateMachine.GetCurrentState().ToString(), header);
                 GUILayout.Label("             Inputs:", header);
                 GUILayout.Label("                    X=" + Input.GetAxis("Player" + j + "Horizontal").ToString("0.###"), small);
                 GUILayout.Label("                    Y=" + Input.GetAxis("Player" + j + "Vertical").ToString("0.###"), small);
@@ -336,7 +336,7 @@ public class MasterLogic : MonoBehaviour
 
         GUILayout.BeginArea(new Rect(Screen.width / 3.5f, Screen.height / 2f, Screen.width, Screen.height));
         GUILayout.EndArea();
-        if (!isGameStateActive(GameStateId.Results))
+        if (!gameStateMachine.IsStateActive(GameStateId.Results))
         {
             GUI.color = new Color(1f, 1f, 1f, .75f);
             string player1stocks = "[", player2stocks = "[";
@@ -356,11 +356,6 @@ public class MasterLogic : MonoBehaviour
 
 
     #region Helpers
-    public bool isGameStateActive(GameStateId state)
-    {
-        return gameStateMachine.GetCurrentStateId() == (int)state;
-    }
-
     private Color ScaleMultiplier(Color min, Color max, float multiple)
     {
         return min + ((max - min) * multiple);

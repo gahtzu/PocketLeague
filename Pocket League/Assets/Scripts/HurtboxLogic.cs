@@ -23,9 +23,9 @@ public class HurtboxLogic : MonoBehaviour
     }
     private void OnTriggerEnter(Collider collider)
     {
-        if (!masterLogic.isGameStateActive(GameStateId.Results))
+        if (!masterLogic.gameStateMachine.IsStateActive(GameStateId.Results))
         {
-             if (collider.tag == "Hole" && masterLogic.isGameStateActive(GameStateId.Battle))
+             if (collider.tag == "Hole" && masterLogic.gameStateMachine.IsStateActive(GameStateId.Battle))
                 masterLogic.KillPlayer(pocketController, collider.gameObject);
         }
     }
