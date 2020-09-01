@@ -12,178 +12,211 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-
-public class State
+public partial class StateMachine
 {
-    // parameterless constructor needed
-    public State()
+    public class State
     {
-
-    }
-
-    // base constructor for setting a state's identifiable properties and it's legal transitions
-    public State(Enum stateId, Transitions stateTransitions)
-    {
-        id = stateId;
-        name = stateId.ToString();
-        transitions = stateTransitions;
-    }
-
-    // used to check if a state has a legal transition with the given stateId
-    public bool CanTransition(Enum stateId)
-    {
-        // if no transitions object is set, then this state can freely transition to any other state
-        bool canTransition = false;
-        if (transitions != null)
+        // parameterless constructor needed;
+        public State()
         {
-            if (transitions.areLegal)
+
+        }
+
+        // base constructor for setting a state's identifiable properties and it's legal transitions
+        public State(Enum stateId, Transitions stateTransitions)
+        {
+            id = stateId;
+            name = stateId.ToString();
+            transitions = stateTransitions;
+        }
+
+        // used to check if a state has a legal transition with the given stateId
+        public bool CanTransition(Enum stateId)
+        {
+            // if no transitions object is set, then this state can freely transition to any other state
+            bool canTransition = false;
+            if (transitions != null)
             {
-                canTransition = transitions.states.Contains(stateId);
+                if (transitions.areLegal)
+                {
+                    canTransition = transitions.states.Contains(stateId);
+                }
+                else
+                {
+                    canTransition = !transitions.states.Contains(stateId);
+                }
+
+            }
+            return canTransition;
+        }
+
+        // used to set the state's status event, whether it is entering or exiting
+        public void Set(Context context, bool enteringState)
+        {
+            if (enteringState)
+            {
+                Entry(context);
             }
             else
             {
-                canTransition = !transitions.states.Contains(stateId);
+                Exit(context);
             }
-
         }
-        return canTransition;
-    }
 
-    // used to set the state's status event, whether it is entering or exiting
-    public void Set(Enum otherState, bool enteringState)
-    {
-        if (enteringState)
+        // used to subscribe to a state's entry or exit event
+        public void Subscribe(SubscriptionDelegate callback, bool onEntry, int priorityValue = 0)
         {
-            Entry(otherState);
+            if (callback != null)
+            {
+                Subscriber newSub = new Subscriber(callback, priorityValue);
+                if (onEntry)
+                {
+                    entrySubscribers.Add(newSub);
+                    entrySubscribers.Sort((sub1, sub2) => sub2.priority.CompareTo(sub1.priority));
+                }
+                else
+                {
+                    exitSubscribers.Add(newSub);
+                    exitSubscribers.Sort((sub1, sub2) => sub2.priority.CompareTo(sub1.priority));
+                }
+            }
         }
-        else
+
+        #region PrivateFunctions
+
+        // function called when the state is entered and calls every subscribed callback inside a try catch for uninterrupted execution, but still logs the error
+        private void Entry(Context context)
         {
-            Exit(otherState);
-        }
-    }
+            active = true;
+            foreach (Subscriber subscriber in entrySubscribers)
+            {
+                try
+                {
+                    subscriber.callback(context);
+                }
 
-    // used to subscribe to a state's entry or exit event
-    public void Subscribe(Action<Enum> callback, bool onEntry, int priorityValue = 0)
-    {
-        if (callback != null)
+                catch (Exception e)
+                {
+                    Debug.LogError("Function subscribed to State: ' " + name + " ' , With exception: " + e);
+                }
+            }
+        }
+
+        // function called when the state is exited and calls every subscribed callback inside a try catch for uninterrupted execution, but still logs the error
+        private void Exit(Context context)
         {
-            Subscriber newSub = new Subscriber(callback, priorityValue);
-            if (onEntry)
+            active = false;
+            foreach (Subscriber subscriber in exitSubscribers)
             {
-                entrySubscribers.Add(newSub);
-                entrySubscribers.Sort((sub1, sub2) => sub2.priority.CompareTo(sub1.priority));
-            }
-            else
-            {
-                exitSubscribers.Add(newSub);
-                exitSubscribers.Sort((sub1, sub2) => sub2.priority.CompareTo(sub1.priority));
+                try
+                {
+                    subscriber.callback(context);
+                }
+
+                catch (Exception e)
+                {
+                    Debug.LogError("Function subscribed to State: ' " + name + " ' , With exception: " + e);
+                }
             }
         }
-    }
 
-    #region PrivateFunctions
+        #endregion
 
-    // function called when the state is entered and calls every subscribed callback inside a try catch for uninterrupted execution, but still logs the error
-    private void Entry(Enum previousState)
-    {
-        active = true;
-        foreach (Subscriber subscriber in entrySubscribers)
+        #region Variables
+        // houses name of state
+        public string name
         {
-            try
-            {
-                subscriber.callback(previousState);
-            }
-
-            catch (Exception e)
-            {
-                Debug.LogError("Function subscribed to State: ' " + name + " ' , With exception: " + e);
-            }
+            get;
+            protected set;
         }
-    }
 
-    // function called when the state is exited and calls every subscribed callback inside a try catch for uninterrupted execution, but still logs the error
-    private void Exit(Enum incomingState)
-    {
-        active = false;
-        foreach (Subscriber subscriber in exitSubscribers)
+        // houses the state id
+        public Enum id
         {
-            try
-            {
-                subscriber.callback(incomingState);
-            }
-
-            catch (Exception e)
-            {
-                Debug.LogError("Function subscribed to State: ' " + name + " ' , With exception: " + e);
-            }
+            get;
+            protected set;
         }
-    }
 
-    #endregion
+        // bool to determine whether a state is currently active or not
+        public bool active { get; private set; }
 
-    #region Variables
-    // houses name of state
-    public string name
-    {
-        get;
-        protected set;
-    }
+        // list of legal OR illegal states this state may transition to
+        protected Transitions transitions;
 
-    // houses the state id
-    public Enum id
-    {
-        get;
-        protected set;
-    }
+        // houses list of callback functions to call on state entry
+        private List<Subscriber> entrySubscribers = new List<Subscriber>();
 
-    // bool to determine whether a state is currently active or not
-    public bool active { get; private set; }
+        // houses list of callback functions to call on state exit
+        private List<Subscriber> exitSubscribers = new List<Subscriber>();
 
-    // list of legal OR illegal states this state may transition to
-    protected Transitions transitions;
+        #endregion
 
-    // houses list of callback functions to call on state entry
-    private List<Subscriber> entrySubscribers = new List<Subscriber>();
-
-    // houses list of callback functions to call on state exit
-    private List<Subscriber> exitSubscribers = new List<Subscriber>();
-
-    #endregion
-
-    #region HelperClasses
-    // class used to house the list of legal OR illegal states this state may transition to
-    public class Transitions
-    {
-        public Transitions(Enum[] stateTransitions, bool areLegalTranstions)
+        #region HelperClasses
+        // class used to house the list of legal OR illegal states this state may transition to
+        public class Transitions
         {
-            foreach (Enum stateTransition in stateTransitions)
+            public Transitions(Enum[] stateTransitions, bool areLegalTranstions)
             {
-                states.Add(stateTransition);
+                foreach (Enum stateTransition in stateTransitions)
+                {
+                    states.Add(stateTransition);
+                }
+                areLegal = areLegalTranstions;
             }
-            areLegal = areLegalTranstions;
+
+            // list of states, the bool 'areLegal' determines whether these states are LEGAL transitions or ILLEGAL transitions
+            public HashSet<Enum> states = new HashSet<Enum>();
+            public bool areLegal = true;
         }
 
-        // list of states, the bool 'areLegal' determines whether these states are LEGAL transitions or ILLEGAL transitions
-        public HashSet<Enum> states = new HashSet<Enum>();
-        public bool areLegal = true;
-    }
-
-    // class used to a subscriber's callback function and it's priority
-    public class Subscriber
-    {
-        public Subscriber(Action<Enum> callbackFoo, int priorityValue)
+        // class used to a subscriber's callback function and it's priority
+        public class Subscriber
         {
-            callback = callbackFoo;
-            priority = priorityValue;
+            public Subscriber(SubscriptionDelegate callbackFoo, int priorityValue)
+            {
+                callback = callbackFoo;
+                priority = priorityValue;
+            }
+
+            // callback function the subscriber will call when an entry or exit occurs
+            public SubscriptionDelegate callback;
+
+            //  priority for what subscribers should run first or last, higher number = higher priority.
+            public int priority;
+        }
+        #endregion
+    }
+
+    // used to provide context for when a state enters/exits
+    public class Context
+    {
+        public Context(Enum previousStateId, Enum nextStateId, object obj = null)
+        {
+            this.previousStateId = previousStateId;
+            this.nextStateId = nextStateId;
+            this.obj = obj;
         }
 
-        // callback function the subscriber will call when an entry or exit occurs
-        public Action<Enum> callback;
+        public Enum previousStateId
+        {
+            get;
+            private set;
+        }
 
-        //  priority for what subscribers should run first or last, higher number = higher priority.
-        public int priority;
+        public Enum nextStateId
+        {
+            get;
+            private set;
+        }
+
+        public object obj
+        {
+            get;
+            private set;
+        }
     }
-    #endregion
 }
+
+
 
 

@@ -7,9 +7,11 @@ using UnityEngine.SceneManagement;
 
 public class PocketPlayerController : MonoBehaviour
 {
-
     #region Variables
     private GameStateMachine gameStateMachine;
+
+    [HideInInspector]
+    public CollisionsStateMachine collisionsStateMachine;
     [HideInInspector]
     public PocketPlayerMachine stateMachine = new PocketPlayerMachine();
     [HideInInspector]
@@ -93,6 +95,10 @@ public class PocketPlayerController : MonoBehaviour
         hitBox.transform.localPosition += new Vector3(0f, 0f, ChargeAttackProperties.smallHitboxOffset);
         hurtBox = transform.Find("hurtbox").gameObject;
 
+        collisionsStateMachine = hurtBox.GetComponent<Hurtbox>().collisionsStateMachine;
+        collisionsStateMachine.Subscribe(OnCollidedWithHole, CollisionsStateMachine.Id.Hole);
+        collisionsStateMachine.Subscribe(OnCollidedWithWall, CollisionsStateMachine.Id.Wall);
+
         stateMachine.Subscribe(BeginCharge, PlayerState.Charge, true);
         stateMachine.Subscribe(ChargeAttackRecovery, PlayerState.ChargeAttackRecovery, true);
         stateMachine.Subscribe(GetHitByAttack, PlayerState.Hitstun, true);
@@ -111,26 +117,29 @@ public class PocketPlayerController : MonoBehaviour
         framesWithoutProjectile = ProjectileProperties.rechargeFrames;
     }
 
-    void Dead(Enum previousState)
+    void Dead(StateMachine.Context context)
     {
-        StopAllCoroutines();
+        if(!collisionsStateMachine.IsStateActive(CollisionsStateMachine.Id.Hole))
+        {
+            StopAllCoroutines();
+        }
         SetBallColor(color_dead);
     }
 
-    void Idle(Enum previousState)
+    void Idle(StateMachine.Context context)
     {
         SetBallColor(color_idle, isBlank: true);
         ToggleHitbox(hitBox, false);
     }
 
-    void Run(Enum previousState)
+    void Run(StateMachine.Context context)
     {
         StopAllCoroutines();
         SetBallColor(color_run, isBlank: true);
         ToggleHitbox(hitBox, false);
     }
 
-    void BeginCharge(Enum previousState)
+    void BeginCharge(StateMachine.Context context)
     {
         StopAllCoroutines();
         chargeCounter = 0;
@@ -138,7 +147,7 @@ public class PocketPlayerController : MonoBehaviour
         StartCoroutine("chargeAttack");
     }
 
-    void ChargeAttackRecovery(Enum previousState)
+    void ChargeAttackRecovery(StateMachine.Context context)
     {
         StopAllCoroutines();
         line.SetActive(false);
@@ -146,12 +155,12 @@ public class PocketPlayerController : MonoBehaviour
         StartCoroutine("chargeAttackRecovery");
     }
 
-    void GetHitByAttack(Enum previousState)
+    void GetHitByAttack(StateMachine.Context context)
     {
         GetHit(false);
     }
 
-    void GetHitByProjectile(Enum previousState)
+    void GetHitByProjectile(StateMachine.Context context)
     {
         GetHit(true);
     }
@@ -182,14 +191,14 @@ public class PocketPlayerController : MonoBehaviour
     }
 
 
-    void SwipeAttack(Enum previousState)
+    void SwipeAttack(StateMachine.Context context)
     {
         StopAllCoroutines();
         SetBallColor(color_charge, isBlank: true);
         StartCoroutine("swipeAttack");
     }
 
-    void Teleport(Enum previousState)
+    void Teleport(StateMachine.Context context)
     {
         StopAllCoroutines();
         ToggleHitbox(hitBox, false, true);
@@ -199,7 +208,7 @@ public class PocketPlayerController : MonoBehaviour
         StartCoroutine("teleport");
     }
 
-    void Projectile(Enum previousState)
+    void Projectile(StateMachine.Context context)
     {
         StopAllCoroutines();
         framesWithoutProjectile = 0;
@@ -207,7 +216,7 @@ public class PocketPlayerController : MonoBehaviour
         StartCoroutine("projectile");
     }
 
-    void Actionable(Enum previousState)
+    void Actionable(StateMachine.Context context)
     {
         line.SetActive(false);
         ResetHitboxOrientation();
@@ -686,6 +695,39 @@ public class PocketPlayerController : MonoBehaviour
             case "SwipeAttackRight": return playerDetails.id == 1 ? masterLogic.swipeAttack_btn_R_P1 : masterLogic.swipeAttack_btn_R_P2;
             default: return Button.Start;
         }
+    }
+
+    public void OnCollidedWithHole(StateMachine.Context context)
+    {
+        StopAllCoroutines();
+        StartCoroutine(DieInHole((Transform)context.obj));
+    }
+
+    public void OnCollidedWithWall(StateMachine.Context context)
+    {
+        Transform wall = (Transform)context.obj;
+        if (stateMachine.IsStateActive(PlayerState.Hitstun))
+        {
+           ReflectKnockbackTrajectory(wall.position.normalized);
+        }
+    }
+
+    private IEnumerator DieInHole(Transform hole)
+    {
+        playerDetails.stocks--;
+        stateMachine.ChangeState(PlayerState.Dead);
+
+        //fall into the abyss
+        for (int i = 0; i < 50; i++)
+        {
+            model.transform.localScale -= new Vector3(.02f, .05f, .05f);
+            transform.position = Vector3.MoveTowards(transform.position, hole.transform.position, .035f);
+            yield return new WaitForEndOfFrame();
+        }
+        if (playerDetails.stocks > 0)
+            masterLogic.GetReadyForCountDown(this);
+        else
+            masterLogic.EndGame(this);
     }
 }
 

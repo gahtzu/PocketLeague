@@ -129,10 +129,10 @@ public class MasterLogic : MonoBehaviour
         StartCoroutine("CountDown");
     }
 
-    void Countdown(Enum previousState) { }
-    void Battle(Enum previousState) { }
-    void Death(Enum previousState) { }
-    void Results(Enum previousState) { }
+    void Countdown(StateMachine.Context context) { }
+    void Battle(StateMachine.Context context) { }
+    void Death(StateMachine.Context context) { }
+    void Results(StateMachine.Context context) { }
 
     public void CreatePlayer(int id)
     {
@@ -211,8 +211,10 @@ public class MasterLogic : MonoBehaviour
         player.playerDetails.stocks--;
         player.StopAllCoroutines();
         player.stateMachine.ChangeState(PlayerState.Dead);
+        yield return new WaitForEndOfFrame();
 
         //fall into the abyss
+        
         for (int i = 0; i < 50; i++)
         {
             player.model.transform.localScale -= new Vector3(.02f, .05f, .05f);

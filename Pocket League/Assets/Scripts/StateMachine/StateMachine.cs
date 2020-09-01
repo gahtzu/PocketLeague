@@ -24,35 +24,36 @@ public abstract partial class StateMachine
     protected abstract void Initialize();
     public StateMachine() { Initialize(); }
 
-    public void ChangeState(Enum stateId, bool on = true)
+    public delegate void SubscriptionDelegate(Context context);
+
+    public void ChangeState(Enum stateId, object contextObject = null)
     {
         if (states.ContainsKey(stateId))
         {
             State state = states[stateId];
 
             // immediately set the current state if one doesn't exist
-            if(currentState == null)
+            if (currentState == null)
             {
                 currentState = state;
-                state.Set(currentState.id, true);
+                Context context = new Context(currentState.id, currentState.id, contextObject);
+                state.Set(context, true);
                 return;
             }
 
             // check to see if the current state can legally transition to the incoming state
             if (currentState.CanTransition(state.id))
             {
-                State previousCurrentState = currentState;
-                if (previousCurrentState != null)
-                {
-                    // set previous state to 'false'
-                    previousCurrentState.Set(state.id, false);
-                }
+                Context context = new Context(currentState.id, state.id, contextObject);
+
+                // set previous state to 'false'
+                currentState.Set(context, false);
 
                 // set current state
                 currentState = state;
 
-                // set incoming state to 'true'
-                state.Set(previousCurrentState.id, true);
+                // set new current state to 'true'
+                currentState.Set(context, true);
             }
         }
     }
@@ -80,7 +81,7 @@ public abstract partial class StateMachine
         return active;
     }
 
-    public void Subscribe(Action<Enum> callback, Enum stateId, bool onEntry = true)
+    public void Subscribe(SubscriptionDelegate callback, Enum stateId, bool onEntry = true)
     {
         if (states.ContainsKey(stateId))
         {
