@@ -105,7 +105,7 @@ public class PocketPlayerController : MonoBehaviour
         stateMachine.Subscribe(Projectile, PlayerState.Projectile, true);
         stateMachine.Subscribe(Actionable, PlayerState.Actionable, true);
 
-        //hasController = Input.GetJoystickNames().Length >= playerId;
+        hasController = Input.GetJoystickNames().Length >= playerId;
 
         framesWithoutTeleport = TeleportProperties.rechargeFrames;
         framesWithoutProjectile = ProjectileProperties.rechargeFrames;
@@ -547,10 +547,6 @@ public class PocketPlayerController : MonoBehaviour
         }
         else
         {
-            if(Input.GetKey(KeyCode.W))
-            {
-                JoystickPosition.y = Input.GetKey(KeyCode.W) ? 1f : 0f;
-            }
             JoystickPosition.y = Input.GetKey(KeyCode.W) ? 1f : 0f;
             JoystickPosition.y += Input.GetKey(KeyCode.S) ? -1f : 0f;
             JoystickPosition.x = Input.GetKey(KeyCode.A) ? -1f : 0f;
@@ -576,12 +572,9 @@ public class PocketPlayerController : MonoBehaviour
 
     public void RegisterKeyboardInputs(KeyCode keycode, int buttonNumber)
     {
-        if (Input.GetKeyDown(keycode))
-            ButtonList_OnKeyDown.Add((Button)buttonNumber);
-        if (Input.GetKeyUp(keycode))
-            ButtonList_OnKeyUp.Add((Button)buttonNumber);
-        if (Input.GetKey(keycode))
-            ButtonList_OnKey.Add((Button)buttonNumber);
+        if (Input.GetKeyDown(keycode)) ButtonList_OnKeyDown.Add((Button)buttonNumber);
+        if (Input.GetKeyUp(keycode)) ButtonList_OnKeyUp.Add((Button)buttonNumber);
+        if (Input.GetKey(keycode)) ButtonList_OnKey.Add((Button)buttonNumber);
     }
 
     public void RegisterControllerInputs(string keycode, int buttonNumber)
